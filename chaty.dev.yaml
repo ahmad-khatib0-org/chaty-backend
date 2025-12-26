@@ -1,22 +1,24 @@
 # ⚠️ This configuration is intended for development environment.
 # If you'd like to override anything, create a chaty.dev.overrides.yaml
----
+
 production: false
 
 # Database configuration
+# Note: Using ScyllaDB (Cassandra-compatible NoSQL database)
 database:
-  # Scylladb connection URL
-  # Defaults to the container name specified in self-hosted
-  scylladb: "mongodb://localhost:27017/chaty"
-  # Redis connection URL
-  # Defaults to the container name specified in self-hosted
-  redis: "redis://localhost:6379"
+  # ScyllaDB connection URL
+  # Defaults to the container name specified in Docker Compose
+  scylladb: "scylladb:9042"
+  # Dragonfly connection URL (Redis-compatible cache)
+  # Defaults to the container name specified in Docker Compose
+  dragonfly: "dragonfly://dragonfly:6379"
 
 # Kafka/Redpanda message broker configuration
 kafka:
   # List of Kafka brokers
+  # Use internal addresses when connecting from Docker containers
   brokers:
-    - "localhost:9092"
+    - "redpanda:9092"
   # SASL authentication username (optional)
   username: null
   # SASL authentication password (optional)
@@ -25,6 +27,30 @@ kafka:
   sasl_mechanism: null
   # Security protocol (e.g., PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL)
   security_protocol: null
+
+# OAuth 2.0 / OpenID Connect configuration (Hydra)
+oauth:
+  # Public endpoint of Hydra authorization server
+  public_url: "http://localhost:4444"
+  # Admin endpoint of Hydra authorization server
+  admin_url: "http://hydra:4445"
+  # Client ID for this application
+  client_id: ""
+  # Client secret for this application
+  client_secret: ""
+  # Redirect URI after successful authentication
+  redirect_uri: "http://localhost:3000/api/auth/callback"
+  # Scopes to request
+  scopes:
+    - "openid"
+    - "profile"
+    - "email"
+  # Token endpoint
+  token_endpoint: "http://hydra:4444/oauth2/token"
+  # Authorization endpoint
+  auth_endpoint: "http://hydra:4444/oauth2/auth"
+  # User info endpoint
+  userinfo_endpoint: "http://hydra:4444/userinfo"
 
 # Web service locations
 # Defaults assume all services are reverse-proxied
@@ -47,19 +73,23 @@ api:
     invite_only: false
 
   # Email/SMTP server configuration for verification
-  # Defaults to no email verification (host field is empty)
+  # Using MailDev for development (port 1025)
   smtp:
-    host: ""
-    username: ""
-    password: ""
+    host: "maildev"
+    username: "smtp"
+    password: "smtp"
     from_address: "noreply@chaty.local"
     reply_to: null
-    port: 587
+    port: 25
     use_tls: false
-    use_starttls: true
+    use_starttls: false
 
   # Security and API keys
   security:
+    # Authifier Shield API key
+    authifier_shield_key: ""
+    # Legacy voice server management token
+    voso_legacy_token: ""
     # Whether services are behind the Cloudflare network
     trust_cloudflare: false
     # easypwned endpoint
@@ -148,7 +178,8 @@ files:
   # Example for Windows executables and Android installation files:
   # ["application/vnd.microsoft.portable-executable", "application/vnd.android.package-archive"]
   blocked_mime_types: []
-  # ClamAV service: hostname:port
+  # ClamAV service
+  # hostname:port
   clamd_host: "localhost:3310"
   # Mime types that should be virus scanned
   # Leave empty to scan all file types
@@ -177,18 +208,19 @@ files:
     banners: [480, 480]
     emojis: [128, 128]
 
-  # S3 storage configuration
+  # S3 storage configuration (MinIO)
   s3:
     # S3 protocol endpoint
-    endpoint: "http://localhost:9000"
-    # Whether to use path-style buckets, Generally true, except for MinIO
+    endpoint: "http://minio:9000"
+    # Whether to use path-style buckets
+    # True for MinIO and Redpanda compatible services
     path_style_buckets: true
     # S3 region name
     region: "us-east-1"
     # S3 protocol key ID
     access_key_id: "chaty-dev"
     # S3 protocol access key
-    secret_access_key: "chaty-dev"
+    secret_access_key: "chaty-dev-password"
     # Bucket to upload to by default
     default_bucket: "chaty-uploads"
 

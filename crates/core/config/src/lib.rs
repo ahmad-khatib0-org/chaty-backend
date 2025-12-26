@@ -17,14 +17,14 @@ pub use sentry_anyhow::capture_anyhow;
 #[derive(Deserialize, Debug, Clone)]
 pub struct Database {
   pub scylladb: String,
-  pub redis: String,
+  pub dragonfly: String,
 }
 
 impl Default for Database {
   fn default() -> Self {
     Self {
-      scylladb: "mongodb://localhost:27017".to_string(),
-      redis: "redis://localhost:6379".to_string(),
+      scylladb: "localhost:9042".to_string(),
+      dragonfly: "dragonfly://localhost:6379".to_string(),
     }
   }
 }
@@ -41,11 +41,40 @@ pub struct Kafka {
 impl Default for Kafka {
   fn default() -> Self {
     Self {
-      brokers: vec!["localhost:9092".to_string()],
+      brokers: vec!["localhost:19092".to_string()],
       username: None,
       password: None,
       sasl_mechanism: None,
       security_protocol: None,
+    }
+  }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct OAuth {
+  pub public_url: String,
+  pub admin_url: String,
+  pub client_id: String,
+  pub client_secret: String,
+  pub redirect_uri: String,
+  pub scopes: Vec<String>,
+  pub token_endpoint: String,
+  pub auth_endpoint: String,
+  pub userinfo_endpoint: String,
+}
+
+impl Default for OAuth {
+  fn default() -> Self {
+    Self {
+      public_url: "http://localhost:4444".to_string(),
+      admin_url: "http://localhost:4445".to_string(),
+      client_id: String::new(),
+      client_secret: String::new(),
+      redirect_uri: "http://localhost:3000/api/auth/callback".to_string(),
+      token_endpoint: "http://localhost:4444/oauth2/token".to_string(),
+      auth_endpoint: "http://localhost:4444/oauth2/auth".to_string(),
+      userinfo_endpoint: "http://localhost:4444/userinfo".to_string(),
+      scopes: vec!["openid".to_string(), "profile".to_string(), "email".to_string()],
     }
   }
 }
@@ -100,13 +129,13 @@ impl Default for ApiSmtp {
   fn default() -> Self {
     Self {
       host: "localhost".to_string(),
-      username: String::new(),
-      password: String::new(),
-      from_address: "noreply@localhost".to_string(),
+      username: "smtp".to_string(),
+      password: "smtp".to_string(),
+      from_address: "noreply@chaty.local".to_string(),
       reply_to: None,
-      port: Some(587),
+      port: Some(1025),
       use_tls: Some(false),
-      use_starttls: Some(true),
+      use_starttls: Some(false),
     }
   }
 }
@@ -120,7 +149,11 @@ pub struct PushVapid {
 
 impl Default for PushVapid {
   fn default() -> Self {
-    Self { queue: "vapid".to_string(), private_key: String::new(), public_key: String::new() }
+    Self {
+      queue: "notifications.outbound.vapid".to_string(),
+      private_key: String::new(),
+      public_key: String::new(),
+    }
   }
 }
 
@@ -142,7 +175,7 @@ pub struct PushFcm {
 impl Default for PushFcm {
   fn default() -> Self {
     Self {
-      queue: "fcm".to_string(),
+      queue: "notifications.outbound.fcm".to_string(),
       key_type: String::new(),
       project_id: String::new(),
       private_key_id: String::new(),
@@ -169,7 +202,7 @@ pub struct PushApn {
 impl Default for PushApn {
   fn default() -> Self {
     Self {
-      queue: "apn".to_string(),
+      queue: "notifications.outbound.apn".to_string(),
       sandbox: true,
       pkcs8: String::new(),
       key_id: String::new(),
@@ -303,15 +336,15 @@ impl Default for Pushd {
   fn default() -> Self {
     Self {
       production: false,
-      exchange: "chaty".to_string(),
-      mass_mention_chunk_size: 100,
-      message_queue: "messages".to_string(),
-      mass_mention_queue: "mass_mentions".to_string(),
-      dm_call_queue: "dm_calls".to_string(),
-      fr_accepted_queue: "fr_accepted".to_string(),
-      fr_received_queue: "fr_received".to_string(),
-      generic_queue: "generic".to_string(),
-      ack_queue: "ack".to_string(),
+      exchange: "chaty.notifications".to_string(),
+      mass_mention_chunk_size: 200,
+      message_queue: "notifications.origin.message".to_string(),
+      mass_mention_queue: "notifications.origin.mass_mention".to_string(),
+      dm_call_queue: "notifications.ingest.dm_call".to_string(),
+      fr_accepted_queue: "notifications.ingest.fr_accepted".to_string(),
+      fr_received_queue: "notifications.ingest.fr_received".to_string(),
+      generic_queue: "notifications.ingest.generic".to_string(),
+      ack_queue: "notifications.process.ack".to_string(),
       vapid: PushVapid::default(),
       fcm: PushFcm::default(),
       apn: PushApn::default(),
@@ -329,12 +362,7 @@ pub struct FilesLimit {
 
 impl Default for FilesLimit {
   fn default() -> Self {
-    Self {
-      min_file_size: 1024,
-      min_resolution: [1, 1],
-      max_mega_pixels: 100,
-      max_pixel_side: 10000,
-    }
+    Self { min_file_size: 1, min_resolution: [1, 1], max_mega_pixels: 40, max_pixel_side: 10000 }
   }
 }
 
@@ -354,9 +382,9 @@ impl Default for FilesS3 {
       endpoint: "http://localhost:9000".to_string(),
       path_style_buckets: true,
       region: "us-east-1".to_string(),
-      access_key_id: String::new(),
-      secret_access_key: String::new(),
-      default_bucket: "chaty".to_string(),
+      access_key_id: "chaty-dev".to_string(),
+      secret_access_key: "chaty-dev-password".to_string(),
+      default_bucket: "chaty-uploads".to_string(),
     }
   }
 }
@@ -408,14 +436,14 @@ impl Default for GlobalLimits {
   fn default() -> Self {
     Self {
       group_size: 100,
-      message_embeds: 10,
-      message_replies: 50,
+      message_embeds: 5,
+      message_replies: 5,
       message_reactions: 20,
       server_emoji: 100,
-      server_roles: 50,
-      server_channels: 100,
-      new_user_hours: 24,
-      body_limit_size: 10485760,
+      server_roles: 200,
+      server_channels: 200,
+      new_user_hours: 72,
+      body_limit_size: 20000000,
     }
   }
 }
@@ -439,15 +467,15 @@ pub struct FeaturesLimits {
 impl Default for FeaturesLimits {
   fn default() -> Self {
     Self {
-      outgoing_friend_requests: 50,
-      bots: 10,
-      message_length: 4000,
-      message_attachments: 10,
+      outgoing_friend_requests: 10,
+      bots: 5,
+      message_length: 2000,
+      message_attachments: 5,
       servers: 100,
-      voice_quality: 48000,
+      voice_quality: 16000,
       video: true,
-      video_resolution: [1920, 1080],
-      video_aspect_ratio: [16.0, 9.0],
+      video_resolution: [1080, 720],
+      video_aspect_ratio: [0.3, 2.5],
       file_upload_size_limit: HashMap::new(),
     }
   }
@@ -468,7 +496,18 @@ impl Default for FeaturesLimitsCollection {
   fn default() -> Self {
     Self {
       global: GlobalLimits::default(),
-      new_user: FeaturesLimits::default(),
+      new_user: FeaturesLimits {
+        outgoing_friend_requests: 5,
+        bots: 2,
+        message_length: 2000,
+        message_attachments: 5,
+        servers: 50,
+        voice_quality: 16000,
+        video: true,
+        video_resolution: [1080, 720],
+        video_aspect_ratio: [0.3, 2.5],
+        file_upload_size_limit: HashMap::new(),
+      },
       default: FeaturesLimits::default(),
       roles: HashMap::new(),
     }
@@ -504,7 +543,7 @@ impl Default for Features {
       limits: FeaturesLimitsCollection::default(),
       webhooks_enabled: true,
       mass_mentions_send_notifications: false,
-      mass_mentions_enabled: false,
+      mass_mentions_enabled: true,
       advanced: FeaturesAdvanced::default(),
     }
   }
@@ -541,6 +580,7 @@ impl Default for Sentry {
 pub struct Settings {
   pub database: Database,
   pub kafka: Kafka,
+  pub oauth: OAuth,
   pub hosts: Hosts,
   pub api: Api,
   pub pushd: Pushd,
@@ -555,6 +595,7 @@ impl Default for Settings {
     Self {
       database: Database::default(),
       kafka: Kafka::default(),
+      oauth: OAuth::default(),
       hosts: Hosts::default(),
       api: Api::default(),
       pushd: Pushd::default(),
@@ -652,7 +693,7 @@ macro_rules! configure {
 /// Configuration builder
 static CONFIG_BUILDER: Lazy<RwLock<Settings>> = Lazy::new(|| {
   RwLock::new({
-    let env_mode = env::var("ENV").unwrap_or("dev".to_string());
+    let env_mode = env::var("ENV").unwrap_or("local".to_string());
     let path = format!("/chaty.{}.yaml", env_mode);
     let mut settings = Settings::default();
 
