@@ -1,0 +1,297 @@
+---
+services:
+  # ============================================================================
+  # Database - ScyllaDB (NoSQL)
+  # ============================================================================
+  scylladb:
+    image: scylladb/scylla:latest
+    container_name: scylladb
+    restart: always
+    networks:
+      - chaty-dev
+    ports:
+      - "9042:9042" # CQL native protocol
+      - "9160:9160" # Thrift protocol (legacy)
+      - "10000:10000" # ScyllaDB Manager agent
+      - "19042:19042" # JMX
+    volumes:
+      - scylladb_data:/var/lib/scylla
+    environment:
+      - SCYLLA_SEEDS=scylladb
+    command: --smp 1 --memory 1G
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "SHOW HOST"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+          cpus: "1.0"
+
+  # ============================================================================
+  # Cache - Dragonfly (Redis-compatible, faster)
+  # ============================================================================
+  dragonfly:
+    image: "docker.dragonflydb.io/dragonflydb/dragonfly"
+    container_name: dragonfly
+    restart: always
+    ulimits:
+      memlock: -1
+    networks:
+      - chaty-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - dragonfly_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+
+  # ============================================================================
+  # Message Broker - Redpanda (Kafka compatible)
+  # ============================================================================
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    container_name: redpanda
+    restart: always
+    networks:
+      - chaty-dev
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    ports:
+      - "9092:9092" # Kafka API (internal)
+      - "19092:19092" # Kafka API (external)
+      - "8081:8081" # Schema Registry (internal)
+      - "18081:18081" # Schema Registry (external)
+      - "8082:8082" # Pandaproxy (internal)
+      - "18082:18082" # Pandaproxy (external)
+      - "9644:9644" # Admin API
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --mode dev-container
+      - --smp 1
+      - --default-log-level=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9644/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: "1.0"
+
+  # ============================================================================
+  # Object Storage - MinIO (S3-compatible)
+  # ============================================================================
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: minio
+    hostname: minio
+    restart: always
+    networks:
+      - chaty-dev
+    ports:
+      - "9000:9000" # API port
+      - "9001:9001" # Console port
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: chaty-dev
+      MINIO_ROOT_PASSWORD: chaty-dev-password
+      MINIO_CONSOLE_ADDRESS: ":9001"
+    command: server /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ============================================================================
+  # MinIO Bucket Creation
+  # ============================================================================
+  createbuckets:
+    image: minio/mc:latest
+    container_name: createbuckets
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - chaty-dev
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc ready minio; do
+        /usr/bin/mc alias set minio http://minio:9000 chaty-dev chaty-dev-password;
+        echo 'Waiting for MinIO...' && sleep 1;
+      done;
+      /usr/bin/mc mb minio/chaty-uploads;
+      /usr/bin/mc mb minio/chaty-avatars;
+      /usr/bin/mc mb minio/chaty-files;
+      exit 0;
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.2"
+
+  # ============================================================================
+  # Mail Server - MailDev (for development)
+  # ============================================================================
+  maildev:
+    image: soulteary/maildev:latest
+    container_name: maildev
+    restart: always
+    networks:
+      - chaty-dev
+    ports:
+      - "1025:25" # SMTP port
+      - "8025:8080" # Web UI
+    environment:
+      MAILDEV_SMTP_PORT: 25
+      MAILDEV_WEB_PORT: 8080
+      MAILDEV_INCOMING_USER: smtp
+      MAILDEV_INCOMING_PASS: smtp
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.2"
+
+  # ============================================================================
+  # OAuth 2.0 Authorization Server - Hydra (Database)
+  # ============================================================================
+  hydra-db:
+    image: postgres:15
+    container_name: hydra-db
+    restart: always
+    networks:
+      - chaty-dev
+    environment:
+      POSTGRES_DB: hydra
+      POSTGRES_USER: hydra
+      POSTGRES_PASSWORD: hydra-password
+      POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB"
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - hydra_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hydra -d hydra"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ============================================================================
+  # OAuth 2.0 Authorization Server - Hydra (Migration)
+  # ============================================================================
+  hydra-migrate:
+    image: oryd/hydra:v2.2.0
+    container_name: hydra-migrate
+    networks:
+      - chaty-dev
+    depends_on:
+      hydra-db:
+        condition: service_healthy
+    environment:
+      DSN: postgres://hydra:hydra-password@hydra-db:5432/hydra?sslmode=disable
+    command: ["migrate", "sql", "-e", "--yes"]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.3"
+
+  # ============================================================================
+  # OAuth 2.0 Authorization Server - Hydra
+  # ============================================================================
+  hydra:
+    image: oryd/hydra:v2.2.0
+    container_name: hydra
+    restart: always
+    networks:
+      - chaty-dev
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "4444:4444" # Public endpoint
+      - "4445:4445" # Admin endpoint
+    volumes:
+      - ./hydra.yml:/config/hydra.yml:ro
+    command: ["serve", "all", "--dev"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ============================================================================
+  # Kafka UI (Optional - for Redpanda monitoring)
+  # ============================================================================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    restart: unless-stopped
+    networks:
+      - chaty-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "redpanda-local"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "redpanda:9092"
+      KAFKA_CLUSTERS_0_ZOOKEEPER: ""
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: "http://redpanda:8081"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.3"
+
+networks:
+  chaty-dev:
+    driver: bridge
+
+volumes:
+  scylladb_data:
+  dragonfly_data:
+  redpanda_data:
+  minio_data:
+  hydra_db_data:

@@ -1,0 +1,80 @@
+# Hydra OAuth 2.0 and OpenID Connect Configuration
+# This is the configuration file for Hydra in development mode
+
+---
+# Database connection string
+dsn: postgres://hydra:hydra-password@hydra-db:5432/hydra?sslmode=disable
+
+# Secret keys used for signing and encryption
+secrets:
+  system:
+    # IMPORTANT: Replace with a proper 32-character minimum secret in production
+    - this_needs_to_be_32_bytes_minimum_secret_key
+
+# Logging configuration
+log:
+  level: debug
+  format: json
+
+# URLs configuration
+urls:
+  self:
+    # The public endpoint of Hydra
+    public: http://localhost:4444
+    # The admin endpoint of Hydra
+    admin: http://localhost:4445
+    # The issuer URL (used in JWT tokens)
+    issuer: http://localhost:4444/
+  # The URL to your login endpoint
+  login: http://localhost:3000/api/auth/login
+  # The URL to your consent endpoint
+  consent: http://localhost:3000/api/auth/consent
+  # The URL to your logout endpoint
+  logout: http://localhost:3000/auth/logout
+  # The URL to your error endpoint
+  error: http://localhost:3000/auth/error
+
+# Strategies for token handling
+strategies:
+  access_token: jwt
+
+# Token TTL (Time To Live) configuration
+ttl:
+  access_token: 240h # 10 days
+  refresh_token: 720h # 30 days
+  id_token: 240h # 10 days
+  auth_code: 10m # 10 minutes
+
+
+# OAuth 2.0 server configuration
+# oauth2:
+#   client_auth_method: client_secret_basic
+#   expose_internal_errors: true
+#
+# # OpenID Connect configuration
+# oidc:
+#   expose_internal_errors: true
+#   dynamic_client_registration:
+#     enabled: true
+#
+# # CORS configuration
+# cors:
+#   enabled: true
+#   allowed_origins:
+#     - http://localhost:3000
+#     - http://localhost:3001
+#     - http://localhost:3002
+#     - http://localhost:3003
+#   allowed_methods:
+#     - GET
+#     - POST
+#     - PUT
+#     - DELETE
+#     - OPTIONS
+#   allowed_headers:
+#     - Content-Type
+#     - Authorization
+#   expose_headers:
+#     - Content-Length
+#   allow_credentials: true
+#   max_age: 86400
