@@ -1,0 +1,295 @@
+# ⚠️ This configuration is intended for development environment.
+# If you'd like to override anything, create a chaty.dev.overrides.yaml
+---
+production: false
+
+# Database configuration
+database:
+  # Scylladb connection URL
+  # Defaults to the container name specified in self-hosted
+  scylladb: "mongodb://localhost:27017/chaty"
+  # Redis connection URL
+  # Defaults to the container name specified in self-hosted
+  redis: "redis://localhost:6379"
+
+# Kafka/Redpanda message broker configuration
+kafka:
+  # List of Kafka brokers
+  brokers:
+    - "localhost:9092"
+  # SASL authentication username (optional)
+  username: null
+  # SASL authentication password (optional)
+  password: null
+  # SASL mechanism (e.g., PLAIN, SCRAM-SHA-256, SCRAM-SHA-512)
+  sasl_mechanism: null
+  # Security protocol (e.g., PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL)
+  security_protocol: null
+
+# Web service locations
+# Defaults assume all services are reverse-proxied
+# Remember to change these to https/wss where appropriate in production!
+hosts:
+  app: "http://localhost:3000"
+  api: "http://localhost:3001"
+  ws: "ws://localhost:3002"
+  files: "http://localhost:3003"
+  gifs: "http://localhost:3004"
+  # Public urls for livekit nodes
+  # Each entry here should have a corresponding entry under `api.livekit.nodes`
+  livekit: {}
+
+# API server configuration
+api:
+  # User registration settings
+  registration:
+    # Whether an invite should be required for registration
+    invite_only: false
+
+  # Email/SMTP server configuration for verification
+  # Defaults to no email verification (host field is empty)
+  smtp:
+    host: ""
+    username: ""
+    password: ""
+    from_address: "noreply@chaty.local"
+    reply_to: null
+    port: 587
+    use_tls: false
+    use_starttls: true
+
+  # Security and API keys
+  security:
+    # Whether services are behind the Cloudflare network
+    trust_cloudflare: false
+    # easypwned endpoint
+    easypwned: ""
+    # Tenor API Key
+    tenor_key: ""
+    # hCaptcha configuration
+    captcha:
+      hcaptcha_key: ""
+      hcaptcha_sitekey: ""
+
+  # Worker pool configuration
+  workers:
+    # Maximum concurrent connections (to proxy server)
+    max_concurrent_connections: 50
+
+  # LiveKit voice/video configuration
+  livekit:
+    # How long to ring devices for when calling in dms/groups, in seconds
+    call_ring_duration: 30
+    # Config for livekit nodes
+    # Make sure to change the secret when deploying
+    # The key and secret should match the values livekit is using
+    nodes: {}
+
+  # User-related settings
+  users:
+    early_adopter_cutoff: null
+
+# Push notification daemon configuration
+pushd:
+  # Changes the names of the queues to not overlap
+  # prod/beta if they happen to be on the same exchange/instance.
+  # Usually they have to be, so that messages sent from one or the other get sent to everyone
+  production: false
+  # Changes how many users are processed in each chunk when resolving role/everyone mentions.
+  # Increasing this will resolve mentions faster, but will consume more memory while resolving.
+  mass_mention_chunk_size: 200
+
+  # Message queue names (none of these should need changing)
+  exchange: "chaty.notifications"
+  message_queue: "notifications.origin.message"
+  mass_mention_queue: "notifications.origin.mass_mention"
+  dm_call_queue: "notifications.ingest.dm_call"
+  fr_accepted_queue: "notifications.ingest.fr_accepted"
+  fr_received_queue: "notifications.ingest.fr_received"
+  generic_queue: "notifications.ingest.generic"
+  ack_queue: "notifications.process.ack"
+
+  # VAPID push notifications configuration
+  vapid:
+    queue: "notifications.outbound.vapid"
+    private_key: ""
+    public_key: ""
+
+  # Firebase Cloud Messaging configuration
+  fcm:
+    queue: "notifications.outbound.fcm"
+    key_type: ""
+    project_id: ""
+    private_key_id: ""
+    private_key: ""
+    client_email: ""
+    client_id: ""
+    auth_uri: ""
+    token_uri: ""
+    auth_provider_x509_cert_url: ""
+    client_x509_cert_url: ""
+
+  # Apple Push Notification service configuration
+  apn:
+    queue: "notifications.outbound.apn"
+    sandbox: true
+    pkcs8: ""
+    key_id: ""
+    team_id: ""
+
+# File storage and processing configuration
+files:
+  # Encryption key for stored files
+  # Generate your own key using `openssl rand -base64 32`
+  encryption_key: ""
+  # Quality used for lossy WebP previews (set to 100 for lossless)
+  webp_quality: 0.8
+  # Mime types that cannot be uploaded or served
+  # Example for Windows executables and Android installation files:
+  # ["application/vnd.microsoft.portable-executable", "application/vnd.android.package-archive"]
+  blocked_mime_types: []
+  # ClamAV service: hostname:port
+  clamd_host: "localhost:3310"
+  # Mime types that should be virus scanned
+  # Leave empty to scan all file types
+  scan_mime_types:
+    - "application/vnd.microsoft.portable-executable"
+    - "application/vnd.android.package-archive"
+    - "application/zip"
+
+  # File size and resolution limits
+  limit:
+    # Minimum file size (in bytes)
+    min_file_size: 1
+    # Minimum image resolution
+    min_resolution: [1, 1]
+    # Maximum megapixels of images
+    max_mega_pixels: 40
+    # Maximum pixel side of an image
+    max_pixel_side: 10000
+
+  # Preview image resolutions for different use cases
+  preview:
+    attachments: [1280, 1280]
+    avatars: [128, 128]
+    backgrounds: [1280, 720]
+    icons: [128, 128]
+    banners: [480, 480]
+    emojis: [128, 128]
+
+  # S3 storage configuration
+  s3:
+    # S3 protocol endpoint
+    endpoint: "http://localhost:9000"
+    # Whether to use path-style buckets, Generally true, except for MinIO
+    path_style_buckets: true
+    # S3 region name
+    region: "us-east-1"
+    # S3 protocol key ID
+    access_key_id: "chaty-dev"
+    # S3 protocol access key
+    secret_access_key: "chaty-dev"
+    # Bucket to upload to by default
+    default_bucket: "chaty-uploads"
+
+# Feature gates and limits
+features:
+  # Enable webhook support
+  webhooks_enabled: true
+  # Enable push notifications for mass pings (everyone, online, roles)
+  # When false this will still ping in-client but will not send notifications from pushd
+  mass_mentions_send_notifications: false
+  # Can role/everyone pings be used at all
+  mass_mentions_enabled: true
+
+  # Feature limits configuration
+  limits:
+    # Global limits applied to all users
+    global:
+      group_size: 100
+      message_embeds: 5
+      message_replies: 5
+      message_reactions: 20
+      server_emoji: 100
+      server_roles: 200
+      server_channels: 200
+      # How many hours since creation a user is considered new
+      new_user_hours: 72
+      # Maximum permissible body size in bytes for uploads
+      # (should be greater than any one file upload limit)
+      body_limit_size: 20000000
+
+    # Limits imposed on new users
+    new_user:
+      # Number of outgoing friend requests permitted at any time
+      outgoing_friend_requests: 5
+      # Maximum number of owned bots
+      bots: 2
+      # Message content length
+      message_length: 2000
+      # Number of attachments that can be included
+      message_attachments: 5
+      # Maximum number of servers the user can create/join
+      servers: 50
+      # Maximum audio frequency (Hz) in voice calls
+      voice_quality: 16000
+      # Whether the user can use video streams in voice calls
+      video: true
+      # Maximum resolution (width, height) of video streams in voice calls
+      video_resolution: [1080, 720]
+      # Minimum and maximum aspect ratio of video streams in voice calls
+      video_aspect_ratio: [0.3, 2.5]
+      # Maximum file size limits (in bytes)
+      file_upload_size_limit:
+        attachments: 20000000
+        avatars: 4000000
+        backgrounds: 6000000
+        icons: 2500000
+        banners: 6000000
+        emojis: 500000
+
+    # Limits imposed on users by default
+    default:
+      # Number of outgoing friend requests permitted at any time
+      outgoing_friend_requests: 10
+      # Maximum number of owned bots
+      bots: 5
+      # Message content length
+      message_length: 2000
+      # Number of attachments that can be included
+      message_attachments: 5
+      # Maximum number of servers the user can create/join
+      servers: 100
+      # Maximum audio frequency (Hz) in voice calls
+      voice_quality: 16000
+      # Whether the user can use video streams in voice calls
+      video: true
+      # Maximum resolution (width, height) of video streams in voice calls
+      video_resolution: [1080, 720]
+      # Minimum and maximum aspect ratio of video streams in voice calls
+      video_aspect_ratio: [0.3, 2.5]
+      # Maximum file size limits (in bytes)
+      file_upload_size_limit:
+        attachments: 20000000
+        avatars: 4000000
+        backgrounds: 6000000
+        icons: 2500000
+        banners: 6000000
+        emojis: 500000
+
+  # Advanced feature configuration
+  advanced:
+    # The max amount of messages the kafka provider will delay for before forcing handling of a channel.
+    # default: 5
+    process_message_delay_limit: 5
+
+# Sentry error reporting configuration
+sentry:
+  api: ""
+  ws: ""
+  voice_ingress: ""
+  files: ""
+  proxy: ""
+  pushd: ""
+  crond: ""
+  gifs: ""
