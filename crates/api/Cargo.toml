@@ -1,0 +1,19 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Ahmad Khatib <ahmadkhatib923@gmail.com>"]
+description = "Chaty Backend: Api implementation (grpc)"
+
+[dependencies]
+chaty-database = { path = "../core/database" }
+chaty-config = { version = "0.1.3", path = "../core/config" }
+chaty-result = { version = "0.1.3", path = "../core/result" }
+
+chaty-proto = ">=0.0.1, <1.0"
+tokio = { version = "1.48.0", features = ["full"] }
+tonic = { version = "0.13.1" }
+
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

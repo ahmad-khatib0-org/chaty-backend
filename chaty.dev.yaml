@@ -9,6 +9,7 @@ database:
   # ScyllaDB connection URL
   # For development running locally on your machine
   scylladb: "localhost:9042"
+  db_name: chaty
   # Dragonfly connection URL (Redis-compatible cache)
   # For development running locally on your machine
   dragonfly: "dragonfly://localhost:6379"

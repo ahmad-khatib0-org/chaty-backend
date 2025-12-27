@@ -8,6 +8,7 @@ production: false
 database:
   # ScyllaDB connection URL
   scylladb: "localhost:9042"
+  db_name: chaty
   # Dragonfly connection URL (Redis-compatible cache)
   dragonfly: "localhost:6379"
 

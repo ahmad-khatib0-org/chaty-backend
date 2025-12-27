@@ -17,12 +17,17 @@ pub use sentry_anyhow::capture_anyhow;
 #[derive(Deserialize, Debug, Clone)]
 pub struct Database {
   pub scylladb: String,
+  pub db_name: String,
   pub dragonfly: String,
 }
 
 impl Default for Database {
   fn default() -> Self {
-    Self { scylladb: "localhost:9042".to_string(), dragonfly: "localhost:6379".to_string() }
+    Self {
+      scylladb: "localhost:9042".to_string(),
+      db_name: "chaty".to_string(),
+      dragonfly: "localhost:6379".to_string(),
+    }
   }
 }
 
