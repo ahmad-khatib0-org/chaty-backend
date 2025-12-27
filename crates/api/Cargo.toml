@@ -1,5 +1,5 @@
 [package]
-name = "api"
+name = "chaty-api"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
@@ -17,3 +17,5 @@ tonic = { version = "0.13.1" }
 
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower = { version = "0.5.2", features = ["util"] }
+validator = "0.20.0"

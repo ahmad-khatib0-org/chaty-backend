@@ -1,6 +1,6 @@
 use chaty_proto::{
-  chaty_service_server::ChatyService, LoginRequest, LoginResponse, UserCreateRequest,
-  UserCreateResponse,
+  chaty_service_server::ChatyService, UserCreateRequest, UserCreateResponse, UsersLoginRequest,
+  UsersLoginResponse,
 };
 use tonic::{Request, Response, Status};
 
@@ -17,8 +17,8 @@ impl ChatyService for ApiController {
 
   async fn users_login(
     &self,
-    request: Request<LoginRequest>,
-  ) -> Result<Response<LoginResponse>, Status> {
+    request: Request<UsersLoginRequest>,
+  ) -> Result<Response<UsersLoginResponse>, Status> {
     todo!();
   }
 }

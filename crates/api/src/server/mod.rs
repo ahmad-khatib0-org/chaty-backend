@@ -1,9 +1,9 @@
 use std::io::ErrorKind;
 use std::sync::Arc;
 
-use chaty_config::config;
+use chaty_config::{config, Settings};
 use chaty_database::{Database, DatabaseInfo};
-use chaty_result::{BoxedErr, ErrorType, SimpleError};
+use chaty_result::errors::{BoxedErr, ErrorType, SimpleError};
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 
@@ -12,6 +12,7 @@ use crate::controller::{ApiController, ApiControllerArgs};
 #[derive(Debug)]
 pub struct ApiServer {
   pub(super) db: Arc<Database>,
+  pub(super) config: Arc<Settings>,
 }
 
 impl ApiServer {
@@ -22,22 +23,24 @@ impl ApiServer {
 
     setup_logging();
     let config = config().await;
-    let db =
-      DatabaseInfo::ScyllaDb { uri: config.database.scylladb, keyspace: config.database.db_name }
-        .connect()
-        .await
-        .map_err(|err| {
-          se(Box::new(std::io::Error::new(ErrorKind::NotConnected, err)), ErrorType::Connection, "")
-        });
+    let db = DatabaseInfo::ScyllaDb {
+      uri: config.database.scylladb.clone(),
+      keyspace: config.database.db_name.clone(),
+    }
+    .connect()
+    .await
+    .map_err(|err| {
+      se(Box::new(std::io::Error::new(ErrorKind::NotConnected, err)), ErrorType::Connection, "")
+    });
 
-    let server = ApiServer { db: Arc::new(db.unwrap()) };
+    let server = ApiServer { db: Arc::new(db.unwrap()), config: Arc::new(config) };
 
     Ok(server)
   }
 
   /// call the run of the grpc server
   pub async fn run(&self) -> Result<(), BoxedErr> {
-    let ctr_args = ApiControllerArgs { db: self.db.clone() };
+    let ctr_args = ApiControllerArgs { db: self.db.clone(), config: self.config.clone() };
     let controller = ApiController::new(ctr_args);
 
     controller.run().await?; // this will block

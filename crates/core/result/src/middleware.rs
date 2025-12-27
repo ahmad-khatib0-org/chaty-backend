@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use tonic::{Request, Status};
 
-use crate::{network::Header, Context, Session};
+use crate::{
+  context::{Context, Session},
+  network::Header,
+};
 
 pub fn middleware_context(mut req: Request<()>) -> Result<Request<()>, Status> {
   let m = req.metadata_mut();

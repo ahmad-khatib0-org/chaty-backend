@@ -64,7 +64,11 @@
     "tr": "Authentication required. Please log in and try again."
   },
   {
-    "id": "user.username.invalid",
+    "id": "users.username.invalid",
     "tr": "The uesrname is invalid"
+  },
+  {
+    "id": "users.email.invalid",
+    "tr": "The provided email is invalid"
   }
 ]

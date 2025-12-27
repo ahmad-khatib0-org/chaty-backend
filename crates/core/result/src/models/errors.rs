@@ -5,10 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tonic::Code;
 
-use super::{
-  context::Context,
-  translate::{tr, TranslateFunc},
-};
+use crate::{context::Context, tr, TranslateFunc};
 
 pub type BoxedErr = Box<dyn Error + Sync + Send>;
 pub type OptionalErr = Option<BoxedErr>;
@@ -30,6 +27,55 @@ pub const ERROR_ID_INTERNAL: &str = "error.internal";
 pub const ERROR_ID_UNAVAILABLE: &str = "error.unavailable";
 pub const ERROR_ID_DATA_LOSS: &str = "error.data_loss";
 pub const ERROR_ID_UNAUTHENTICATED: &str = "error.unauthenticated";
+
+#[derive(Debug)]
+pub struct DBError {
+  pub err_type: ErrorType,
+  pub err: Box<dyn Error + Send + Sync>,
+  pub msg: String,
+  pub path: String,
+}
+
+impl Default for DBError {
+  fn default() -> Self {
+    Self {
+      err_type: ErrorType::DatabaseError,
+      err: Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Database error")),
+      msg: String::new(),
+      path: String::new(),
+    }
+  }
+}
+
+impl fmt::Display for DBError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let mut parts = Vec::new();
+
+    if !self.path.is_empty() {
+      parts.push(format!("path: {}", self.path));
+    }
+    parts.push(format!("err_type: {}", self.err_type));
+    if !self.msg.is_empty() {
+      parts.push(format!("msg: {}", self.msg));
+    }
+    parts.push(format!("err: {}", self.err));
+
+    write!(f, "{}", parts.join(", "))
+  }
+}
+
+impl Error for DBError {}
+
+impl DBError {
+  pub fn new(
+    path: impl Into<String>,
+    err: Box<dyn Error + Send + Sync>,
+    err_type: ErrorType,
+    msg: impl Into<String>,
+  ) -> Self {
+    Self { err_type, err, msg: msg.into(), path: path.into() }
+  }
+}
 
 #[derive(Debug)]
 pub struct SimpleError {
@@ -233,7 +279,7 @@ impl Error for AppError {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum ErrorType {
   // General errors
   LabelMe,
@@ -325,7 +371,7 @@ pub enum ErrorType {
   IsElevated,
 
   // Database errors
-  DatabaseError { operation: String, collection: String },
+  DatabaseError,
   DBConnectionError,
   DBSelectError,
   DBInsertError,
@@ -448,9 +494,7 @@ impl fmt::Display for ErrorType {
       ErrorType::CannotGiveMissingPermissions => write!(f, "Cannot give missing permissions"),
       ErrorType::NotOwner => write!(f, "Not owner"),
       ErrorType::IsElevated => write!(f, "Is elevated"),
-      ErrorType::DatabaseError { operation, collection } => {
-        write!(f, "Database error during {} on {}", operation, collection)
-      }
+      ErrorType::DatabaseError => write!(f, "Database error"),
       ErrorType::DBConnectionError => write!(f, "Database connection error"),
       ErrorType::DBSelectError => write!(f, "Database select error"),
       ErrorType::DBInsertError => write!(f, "Database insert error"),

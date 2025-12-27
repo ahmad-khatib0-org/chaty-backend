@@ -2,20 +2,22 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chaty_proto::User;
-use chaty_result::{AppError, Context, ERROR_ID_ALREADY_EXISTS};
-use tonic::Code;
+use chaty_result::{
+  context::Context,
+  errors::{DBError, ErrorType},
+};
 
 use crate::{ReferenceDb, UsersRepository};
 
 #[async_trait()]
 impl UsersRepository for ReferenceDb {
-  async fn insert_user(&self, ctx: Arc<Context>, user: &User) -> Result<(), AppError> {
+  async fn users_create(&self, _ctx: Arc<Context>, user: &User) -> Result<(), DBError> {
     let mut users = self.users.lock().await;
-    let path = "database.users.insert_user";
+    let path = "database.users.insert_user".to_string();
 
     if users.contains_key(&user.id) {
-      let id = ERROR_ID_ALREADY_EXISTS.to_string();
-      Err(AppError::new(ctx, path, id, None, "", Code::AlreadyExists.into(), None))
+      let msg = "user already exists".to_string();
+      Err(DBError { err_type: ErrorType::ResourceExists, msg, path, ..Default::default() })
     } else {
       users.insert(user.id.to_string(), user.clone());
       Ok(())
