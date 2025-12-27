@@ -1,0 +1,9 @@
+[package]
+name = "chaty-result"
+version = "0.1.3"
+edition = "2024"
+license = "MIT"
+authors = ["Ahmad Khatib <ahmadkhatib923@gmail.com>"]
+description = "Chaty Backend: Result related structs, types, helpers ..."
+
+[dependencies]
