@@ -7,6 +7,9 @@ authors = ["Ahmad Khatib <ahmadkhatib923@gmail.com>"]
 description = "Chaty Backend: Result related structs, types, helpers ..."
 
 [dependencies]
+chaty-proto = ">=0.0.1, <1.0"
+
+tonic = { version = "0.13.1" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"
 tera = "1.20.1"

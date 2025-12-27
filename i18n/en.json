@@ -1,5 +1,69 @@
 [
   {
+    "id": "error.canceled",
+    "tr": "The request was canceled"
+  },
+  {
+    "id": "error.unknown",
+    "tr": "An unexpected error occurred. Please contact support if this persists."
+  },
+  {
+    "id": "error.invalid_argument",
+    "tr": "Invalid request data. Please verify your input and try again."
+  },
+  {
+    "id": "error.deadline_exceeded",
+    "tr": "The operation timed out"
+  },
+  {
+    "id": "error.not_found",
+    "tr": "The requested resource was not found."
+  },
+  {
+    "id": "error.already_exists",
+    "tr": "This resource already exists."
+  },
+  {
+    "id": "error.permission_denied",
+    "tr": "You don't have permission to execute this operation"
+  },
+  {
+    "id": "error.resource_exhausted",
+    "tr": "Rate limit exceeded. Please try again later."
+  },
+  {
+    "id": "error.failed_precondition",
+    "tr": "Precondition check failed. Please ensure all requirements are met."
+  },
+  {
+    "id": "error.aborted",
+    "tr": "The operation was aborted. Please try again."
+  },
+  {
+    "id": "error.out_of_range",
+    "tr": "The operation was attempted past the valid range."
+  },
+  {
+    "id": "error.unimplemented",
+    "tr": "The operation is not implemented or is not supported/enabled in this service."
+  },
+  {
+    "id": "error.internal",
+    "tr": "Sorry, Unexpected internal server error. Our team has been notified. Please try again"
+  },
+  {
+    "id": "error.unavailable",
+    "tr": "Service is temporarily unavailable. Please try again in a few moments."
+  },
+  {
+    "id": "error.data_loss",
+    "tr": "Unrecoverable data loss or corruption."
+  },
+  {
+    "id": "error.unauthenticated",
+    "tr": "Authentication required. Please log in and try again."
+  },
+  {
     "id": "user.username.invalid",
     "tr": "The uesrname is invalid"
   }

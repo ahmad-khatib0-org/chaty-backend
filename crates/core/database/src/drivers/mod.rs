@@ -1,13 +1,14 @@
 use std::future::Future;
 use std::pin::Pin;
 
-#[cfg(feature = "scylladb")]
-use crate::drivers::scylladb::ScyllaDb;
-mod scylladb;
+pub use self::reference::*;
 
 mod reference;
 
-use crate::drivers::reference::ReferenceDb;
+#[cfg(feature = "scylladb")]
+pub use self::scylladb::*;
+mod scylladb;
+
 use chaty_config::config;
 
 /// Database information to use to create a client
@@ -109,4 +110,3 @@ impl DatabaseInfo {
     }
   }
 }
-
