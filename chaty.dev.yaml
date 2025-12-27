@@ -7,11 +7,11 @@ production: false
 # Note: Using ScyllaDB (Cassandra-compatible NoSQL database)
 database:
   # ScyllaDB connection URL
-  # Defaults to the container name specified in Docker Compose
-  scylladb: "scylladb:9042"
+  # For development running locally on your machine
+  scylladb: "localhost:9042"
   # Dragonfly connection URL (Redis-compatible cache)
-  # Defaults to the container name specified in Docker Compose
-  dragonfly: "dragonfly://dragonfly:6379"
+  # For development running locally on your machine
+  dragonfly: "dragonfly://localhost:6379"
 
 # Kafka/Redpanda message broker configuration
 kafka:

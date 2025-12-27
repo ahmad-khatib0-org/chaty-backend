@@ -16,18 +16,17 @@ services:
       - "19042:19042" # JMX
     volumes:
       - scylladb_data:/var/lib/scylla
-    environment:
-      - SCYLLA_SEEDS=scylladb
-    command: --smp 1 --memory 1G
+    command: --developer-mode 1
     healthcheck:
-      test: ["CMD", "cqlsh", "-e", "SHOW HOST"]
-      interval: 10s
+      test: ["CMD", "curl", "-f", "http://localhost:10000/api/v0/status/gossip"]
+      interval: 15s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 45s
     deploy:
       resources:
         limits:
-          memory: 1500M
+          memory: 2000M
           cpus: "1.0"
 
   # ============================================================================
@@ -90,9 +89,10 @@ services:
       - --default-log-level=info
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9644/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -194,7 +194,6 @@ services:
       POSTGRES_DB: hydra
       POSTGRES_USER: hydra
       POSTGRES_PASSWORD: hydra-password
-      POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB"
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - hydra_db_data:/var/lib/postgresql/data
@@ -246,14 +245,18 @@ services:
     ports:
       - "4444:4444" # Public endpoint
       - "4445:4445" # Admin endpoint
+    environment:
+      DSN: postgres://hydra:hydra-password@hydra-db:5432/hydra?sslmode=disable
+      HYDRA_SYSTEM_SECRET: this_needs_to_be_32_bytes_minimum_secret_key_12345
     volumes:
       - ./hydra.yml:/config/hydra.yml:ro
-    command: ["serve", "all", "--dev"]
+    command: ["serve", "all", "--dev", "--config", "/config/hydra.yml"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4444/health/ready"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
+      start_period: 10s
     deploy:
       resources:
         limits:

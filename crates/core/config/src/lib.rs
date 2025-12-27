@@ -22,10 +22,7 @@ pub struct Database {
 
 impl Default for Database {
   fn default() -> Self {
-    Self {
-      scylladb: "localhost:9042".to_string(),
-      dragonfly: "dragonfly://localhost:6379".to_string(),
-    }
+    Self { scylladb: "localhost:9042".to_string(), dragonfly: "localhost:6379".to_string() }
   }
 }
 
@@ -693,7 +690,11 @@ macro_rules! configure {
 /// Configuration builder
 static CONFIG_BUILDER: Lazy<RwLock<Settings>> = Lazy::new(|| {
   RwLock::new({
-    let env_mode = env::var("ENV").unwrap_or("local".to_string());
+    let mut env_mode = env::var("ENV").unwrap_or("local".to_string());
+    if env_mode != "dev" && env_mode != "local" && env_mode != "prod" {
+      env_mode = "local".to_string();
+    }
+
     let path = format!("/chaty.{}.yaml", env_mode);
     let mut settings = Settings::default();
 
