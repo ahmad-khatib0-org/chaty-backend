@@ -4,7 +4,7 @@ use chaty_proto::{
 };
 use tonic::{Request, Response, Status};
 
-use crate::controller::{users::create::users_create, ApiController};
+use crate::controller::{users::users_create::users_create, ApiController};
 
 #[tonic::async_trait]
 impl ChatyService for ApiController {
