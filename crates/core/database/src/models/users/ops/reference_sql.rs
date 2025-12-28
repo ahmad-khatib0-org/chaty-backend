@@ -7,7 +7,7 @@ use chaty_result::{
   errors::{DBError, ErrorType},
 };
 
-use crate::{ReferenceSqlDb, UsersRepository};
+use crate::{CachedUserData, ReferenceSqlDb, UsersRepository};
 
 #[async_trait()]
 impl UsersRepository for ReferenceSqlDb {
@@ -22,5 +22,13 @@ impl UsersRepository for ReferenceSqlDb {
       users.insert(user.id.to_string(), user.clone());
       Ok(())
     }
+  }
+
+  async fn users_get_auth_data(
+    &self,
+    ctx: Arc<Context>,
+    user_id: &str,
+  ) -> Result<CachedUserData, DBError> {
+    Ok(CachedUserData { ..Default::default() })
   }
 }

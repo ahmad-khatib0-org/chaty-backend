@@ -2,6 +2,8 @@
 # If you'd like to override anything, create a chaty.dev.overrides.yaml
 ---
 production: false
+available_languages: ["en"]
+default_language: "en"
 
 # Database configuration
 # Note: Using ScyllaDB (Cassandra-compatible NoSQL database)
@@ -57,10 +59,11 @@ oauth:
 # Remember to change these to https/wss where appropriate in production!
 hosts:
   app: "http://localhost:3000"
-  api: "http://localhost:3001"
+  api: "http://localhost:50050"
   ws: "ws://localhost:3002"
   files: "http://localhost:3003"
   gifs: "http://localhost:3004"
+  auth: 0.0.0.0:50051
   # Public urls for livekit nodes
   # Each entry here should have a corresponding entry under `api.livekit.nodes`
   livekit: {}

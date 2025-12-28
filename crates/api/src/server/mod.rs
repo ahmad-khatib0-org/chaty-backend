@@ -19,7 +19,7 @@ pub struct ApiServer {
 impl ApiServer {
   pub async fn new() -> Result<ApiServer, BoxedErr> {
     let se = |err: BoxedErr, typ: ErrorType, msg: &str| {
-      return SimpleError { err, _type: typ, message: msg.to_string() };
+      return SimpleError { err, err_type: typ, message: msg.to_string() };
     };
 
     setup_logging();

@@ -1,4 +1,11 @@
 [workspace]
 resolver = "2"
 
-members = ["crates/api","crates/core/config", "crates/core/database", "crates/core/result"]
+members = [
+  "crates/api",
+  "crates/auth",
+  "crates/core/config",
+  "crates/core/database",
+  "crates/core/result",
+  "crates/core/utils",
+]

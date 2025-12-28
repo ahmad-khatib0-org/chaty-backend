@@ -1,0 +1,52 @@
+[package]
+name = "chaty-auth"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chaty-proto = "0.1.17"
+chaty-database = { path = "../core/database" }
+chaty-config = { version = "0.1.3", path = "../core/config" }
+chaty-result = { version = "0.1.3", path = "../core/result" }
+chaty-utils = { version = "0.1.3", path = "../core/utils" }
+
+sqlx = { version = "0.8.6", features = [
+  "postgres",
+  "runtime-tokio",
+  "json",
+  "bigdecimal",
+] }
+deadpool-redis = { version = "0.22.0", features = ["serde", "rt_tokio_1"] }
+phf = { version = "0.13.1", features = ["macros"] }
+tokio = { version = "1.45.1", features = ["full"] }
+tonic = "0.13.1"
+tower = "0.5.2"
+http = "1.3.1"
+reqwest = { version = "0.12.28", features = ["json", "gzip"] }
+
+
+# observability
+prometheus = "0.13"
+opentelemetry = { version = "0.24", features = ["metrics", "trace"] }
+opentelemetry_sdk = { version = "0.24", features = ["trace", "metrics"] }
+opentelemetry-otlp = { version = "0.17", features = ["grpc-tonic", "metrics"] }
+opentelemetry-prometheus = "0.16"
+
+## serialize/deserialize
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+serde_yaml = "0.9.34"
+
+## macros
+thiserror = "2.0.12"
+chrono = "0.4.41"
+derive_more = { version = "2.0.1", features = ["display"] }
+
+## utils
+ulid = "1.2.1"
+scopeguard = "1.2.0"
+
+# logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-opentelemetry = "0.25"

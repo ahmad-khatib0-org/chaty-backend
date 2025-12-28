@@ -78,15 +78,42 @@ impl DBError {
 }
 
 #[derive(Debug)]
+pub struct InternalError {
+  pub err: Box<dyn Error + Send + Sync>,
+  pub err_type: ErrorType,
+  pub temp: bool,
+  pub msg: String,
+  pub path: String,
+}
+
+impl InternalError {
+  pub fn new(path: String, err: BoxedErr, err_type: ErrorType, temp: bool, msg: String) -> Self {
+    Self { err, err_type, temp, msg, path }
+  }
+}
+
+impl fmt::Display for InternalError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}: {} (path: {}, temp: {})", self.err_type, self.msg, self.path, self.temp)
+  }
+}
+
+impl Error for InternalError {
+  fn source(&self) -> Option<&(dyn Error + 'static)> {
+    Some(self.err.as_ref())
+  }
+}
+
+#[derive(Debug)]
 pub struct SimpleError {
   pub message: String,
-  pub _type: ErrorType,
+  pub err_type: ErrorType,
   pub err: BoxedErr,
 }
 
 impl fmt::Display for SimpleError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}: {}", self._type, self.message)
+    write!(f, "{}: {}", self.err_type, self.message)
   }
 }
 

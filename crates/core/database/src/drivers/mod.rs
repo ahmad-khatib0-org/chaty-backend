@@ -155,8 +155,6 @@ impl DatabaseInfoSql {
           {
             boxed(DatabaseInfoSql::Postgres { dsn: config.database.postgres }.connect()).await
           }
-          #[cfg(not(feature = "postgres"))]
-          return Err("postgres not enabled.".to_string());
         } else {
           boxed(DatabaseInfoSql::Reference.connect()).await
         }
@@ -170,12 +168,8 @@ impl DatabaseInfoSql {
           "POSTGRES" => {
             #[cfg(feature = "postgres")]
             {
-              // For PostgreSQL, database is part of the DSN
-              // You might want to extract/modify the DSN to use the test database
-              boxed(DatabaseInfoSql::Postgres { dsn: config.database.postgres }.connect()).await
+              boxed(DatabaseInfoSql::Postgres { dsn: database_name }.connect()).await
             }
-            #[cfg(not(feature = "postgres"))]
-            return Err("postgres not enabled.".to_string());
           }
           _ => unreachable!("must specify REFERENCE or POSTGRES"),
         }

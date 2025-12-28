@@ -90,6 +90,7 @@ pub struct Hosts {
   pub ws: String,
   pub files: String,
   pub gifs: String,
+  pub auth: String,
   pub livekit: HashMap<String, String>,
 }
 
@@ -101,6 +102,7 @@ impl Default for Hosts {
       ws: "ws://localhost:3002".to_string(),
       files: "http://localhost:3003".to_string(),
       gifs: "http://localhost:3004".to_string(),
+      auth: "0.0.0.0:50051".to_string(),
       livekit: HashMap::new(),
     }
   }
@@ -592,6 +594,8 @@ pub struct Settings {
   pub features: Features,
   pub sentry: Sentry,
   pub production: bool,
+  pub available_languages: Vec<String>,
+  pub default_language: String,
 }
 
 impl Default for Settings {
@@ -607,6 +611,8 @@ impl Default for Settings {
       features: Features::default(),
       sentry: Sentry::default(),
       production: false,
+      default_language: "en".to_string(),
+      available_languages: vec!["en".to_string()],
     }
   }
 }
