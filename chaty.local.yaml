@@ -9,6 +9,7 @@ database:
   # ScyllaDB connection URL
   scylladb: "localhost:9042"
   db_name: chaty
+  postgres: postgresql://chaty@localhost:26257/chaty?sslmode=disable
   # Dragonfly connection URL (Redis-compatible cache)
   dragonfly: "localhost:6379"
 

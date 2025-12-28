@@ -84,6 +84,18 @@ pub struct SimpleError {
   pub err: BoxedErr,
 }
 
+impl fmt::Display for SimpleError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}: {}", self._type, self.message)
+  }
+}
+
+impl Error for SimpleError {
+  fn source(&self) -> Option<&(dyn Error + 'static)> {
+    Some(self.err.as_ref())
+  }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppErrorError {
   pub id: String,

@@ -4,25 +4,28 @@ mod users;
 use std::{net::SocketAddr, sync::Arc};
 
 use chaty_config::Settings;
-use chaty_database::Database;
+use chaty_database::{DatabaseNoSql, DatabaseSql};
 use chaty_proto::chaty_service_server::ChatyServiceServer;
 use chaty_result::{errors::BoxedErr, middleware_context};
 use tonic::{service::InterceptorLayer, transport::Server};
 use tower::ServiceBuilder;
 
 pub struct ApiControllerArgs {
-  pub(super) db: Arc<Database>,
+  pub(super) nosql_db: Arc<DatabaseNoSql>,
+  pub(super) sql_db: Arc<DatabaseSql>,
   pub(super) config: Arc<Settings>,
 }
 
 pub(crate) struct ApiController {
-  pub(super) db: Arc<Database>,
+  pub(super) nosql_db: Arc<DatabaseNoSql>,
+  pub(super) sql_db: Arc<DatabaseSql>,
   pub(super) config: Arc<Settings>,
 }
 
 impl ApiController {
   pub fn new(args: ApiControllerArgs) -> ApiController {
-    let controller = ApiController { db: args.db, config: args.config };
+    let controller =
+      ApiController { nosql_db: args.nosql_db, sql_db: args.sql_db, config: args.config };
 
     controller
   }

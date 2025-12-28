@@ -33,7 +33,7 @@ pub async fn users_create(
   }
 
   let user = User { ..Default::default() };
-  let db_res = ctr.db.users_create(ctx.clone(), &user).await;
+  let db_res = ctr.sql_db.users_create(ctx.clone(), &user).await;
   if db_res.is_err() {
     let err = db_res.unwrap_err();
     if err.err_type == ErrorType::ResourceExists {

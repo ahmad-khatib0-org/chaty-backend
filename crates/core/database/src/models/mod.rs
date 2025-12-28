@@ -2,24 +2,45 @@ mod users;
 
 pub use users::*;
 
+#[cfg(feature = "postgres")]
+use crate::PostgresDb;
 #[cfg(feature = "scylladb")]
-use crate::{Database, ReferenceDb, ScyllaDb};
+use crate::{DatabaseNoSql, ReferenceNoSqlDb, ScyllaDb};
+use crate::{DatabaseSql, ReferenceSqlDb};
 
-pub trait AbstractDatabase: Sync + Send + UsersRepository {}
+pub trait AbstractDatabaseSql: Sync + Send + UsersRepository {}
 
-impl AbstractDatabase for ReferenceDb {}
+pub trait AbstractDatabaseNoSql: Sync + Send {}
+
+impl AbstractDatabaseNoSql for ReferenceNoSqlDb {}
+impl AbstractDatabaseSql for ReferenceSqlDb {}
 
 #[cfg(feature = "scylladb")]
-impl AbstractDatabase for ScyllaDb {}
+impl AbstractDatabaseNoSql for ScyllaDb {}
 
-impl std::ops::Deref for Database {
-  type Target = dyn AbstractDatabase;
+#[cfg(feature = "postgres")]
+impl AbstractDatabaseSql for PostgresDb {}
+
+impl std::ops::Deref for DatabaseNoSql {
+  type Target = dyn AbstractDatabaseNoSql;
 
   fn deref(&self) -> &Self::Target {
     match self {
-      Database::Reference(dummy) => dummy,
+      DatabaseNoSql::Reference(dummy) => dummy,
       #[cfg(feature = "scylladb")]
-      Database::Scylladb(scylla) => scylla,
+      DatabaseNoSql::Scylladb(scylla) => scylla,
+    }
+  }
+}
+
+impl std::ops::Deref for DatabaseSql {
+  type Target = dyn AbstractDatabaseSql;
+
+  fn deref(&self) -> &Self::Target {
+    match self {
+      DatabaseSql::Reference(dummy) => dummy,
+      #[cfg(feature = "postgres")]
+      DatabaseSql::Postgres(postgres) => postgres,
     }
   }
 }

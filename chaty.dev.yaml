@@ -1,6 +1,6 @@
 # ⚠️ This configuration is intended for development environment.
 # If you'd like to override anything, create a chaty.dev.overrides.yaml
-
+---
 production: false
 
 # Database configuration
@@ -10,6 +10,7 @@ database:
   # For development running locally on your machine
   scylladb: "localhost:9042"
   db_name: chaty
+  postgres: postgresql://chaty@cockroachdb:26257/chaty?sslmode=disable
   # Dragonfly connection URL (Redis-compatible cache)
   # For development running locally on your machine
   dragonfly: "dragonfly://localhost:6379"

@@ -7,10 +7,10 @@ use chaty_result::{
   errors::{DBError, ErrorType},
 };
 
-use crate::{ReferenceDb, UsersRepository};
+use crate::{ReferenceSqlDb, UsersRepository};
 
 #[async_trait()]
-impl UsersRepository for ReferenceDb {
+impl UsersRepository for ReferenceSqlDb {
   async fn users_create(&self, _ctx: Arc<Context>, user: &User) -> Result<(), DBError> {
     let mut users = self.users.lock().await;
     let path = "database.users.insert_user".to_string();

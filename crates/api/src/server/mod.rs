@@ -2,7 +2,7 @@ use std::io::ErrorKind;
 use std::sync::Arc;
 
 use chaty_config::{config, Settings};
-use chaty_database::{Database, DatabaseInfo};
+use chaty_database::{DatabaseInfoNoSql, DatabaseInfoSql, DatabaseNoSql, DatabaseSql};
 use chaty_result::errors::{BoxedErr, ErrorType, SimpleError};
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
@@ -11,7 +11,8 @@ use crate::controller::{ApiController, ApiControllerArgs};
 
 #[derive(Debug)]
 pub struct ApiServer {
-  pub(super) db: Arc<Database>,
+  pub(super) nosql_db: Arc<DatabaseNoSql>,
+  pub(super) sql_db: Arc<DatabaseSql>,
   pub(super) config: Arc<Settings>,
 }
 
@@ -23,7 +24,8 @@ impl ApiServer {
 
     setup_logging();
     let config = config().await;
-    let db = DatabaseInfo::ScyllaDb {
+
+    let nosql_db = DatabaseInfoNoSql::ScyllaDb {
       uri: config.database.scylladb.clone(),
       keyspace: config.database.db_name.clone(),
     }
@@ -31,16 +33,31 @@ impl ApiServer {
     .await
     .map_err(|err| {
       se(Box::new(std::io::Error::new(ErrorKind::NotConnected, err)), ErrorType::Connection, "")
-    });
+    })?;
 
-    let server = ApiServer { db: Arc::new(db.unwrap()), config: Arc::new(config) };
+    let sql_db = DatabaseInfoSql::Postgres { dsn: config.database.postgres.clone() }
+      .connect()
+      .await
+      .map_err(|err| {
+        se(Box::new(std::io::Error::new(ErrorKind::NotConnected, err)), ErrorType::Connection, "")
+      })?;
+
+    let server = ApiServer {
+      nosql_db: Arc::new(nosql_db),
+      sql_db: Arc::new(sql_db),
+      config: Arc::new(config),
+    };
 
     Ok(server)
   }
 
   /// call the run of the grpc server
   pub async fn run(&self) -> Result<(), BoxedErr> {
-    let ctr_args = ApiControllerArgs { db: self.db.clone(), config: self.config.clone() };
+    let ctr_args = ApiControllerArgs {
+      nosql_db: self.nosql_db.clone(),
+      sql_db: self.sql_db.clone(),
+      config: self.config.clone(),
+    };
     let controller = ApiController::new(ctr_args);
 
     controller.run().await?; // this will block

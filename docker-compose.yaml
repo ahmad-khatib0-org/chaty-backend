@@ -4,7 +4,7 @@ services:
   # Database - ScyllaDB (NoSQL)
   # ============================================================================
   scylladb:
-    image: scylladb/scylla:latest
+    image: scylladb/scylla:5.4.0 # Use a specific stable version
     container_name: scylladb
     restart: always
     networks:
@@ -16,19 +16,13 @@ services:
       - "19042:19042" # JMX
     volumes:
       - scylladb_data:/var/lib/scylla
-    command: --developer-mode 1
+    command: --smp 1 --memory 2G
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:10000/api/v0/status/gossip"]
+      test: ["CMD", "cqlsh", "-e", "DESCRIBE keyspaces"]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 45s
-    deploy:
-      resources:
-        limits:
-          memory: 2000M
-          cpus: "1.0"
-
   # ============================================================================
   # Cache - Dragonfly (Redis-compatible, faster)
   # ============================================================================

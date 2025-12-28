@@ -1,7 +1,7 @@
-mod reference;
+mod reference_sql;
 
-#[cfg(feature = "scylladb")]
-mod scylladb;
+#[cfg(feature = "postgres")]
+mod postgres;
 
 use std::sync::Arc;
 

@@ -1,18 +1,24 @@
 use std::future::Future;
 use std::pin::Pin;
 
-pub use self::reference::*;
+pub use self::reference_no_sql::*;
+pub use self::reference_sql::*;
 
-mod reference;
+mod reference_no_sql;
+mod reference_sql;
 
 #[cfg(feature = "scylladb")]
 pub use self::scylladb::*;
 mod scylladb;
 
+#[cfg(feature = "postgres")]
+pub use self::postgres::*;
+mod postgres;
+
 use chaty_config::config;
 
 /// Database information to use to create a client
-pub enum DatabaseInfo {
+pub enum DatabaseInfoNoSql {
   /// Auto-detect the database in use
   Auto,
   /// Auto-detect the database in use and create an empty testing database
@@ -26,34 +32,34 @@ pub enum DatabaseInfo {
 
 /// Database
 #[derive(Debug)]
-pub enum Database {
+pub enum DatabaseNoSql {
   /// Mock database
-  Reference(ReferenceDb),
+  Reference(ReferenceNoSqlDb),
   /// Scylladb database
   #[cfg(feature = "scylladb")]
   Scylladb(ScyllaDb),
 }
 
-// Helper type alias and function defined at module scope
-type BoxedFuture = Pin<Box<dyn Future<Output = Result<Database, String>>>>;
+// Generic helper type alias and function
+type BoxedFuture<T> = Pin<Box<dyn Future<Output = Result<T, String>>>>;
 
-fn boxed(f: impl Future<Output = Result<Database, String>> + 'static) -> BoxedFuture {
+fn boxed<T>(f: impl Future<Output = Result<T, String>> + 'static) -> BoxedFuture<T> {
   Box::pin(f)
 }
 
-impl DatabaseInfo {
+impl DatabaseInfoNoSql {
   /// Create a database client from the given database information
-  pub async fn connect(self) -> Result<Database, String> {
+  pub async fn connect(self) -> Result<DatabaseNoSql, String> {
     let config = config().await;
     match self {
-      DatabaseInfo::Auto => {
-        if std::env::var("TEST_DB").is_ok() {
-          boxed(DatabaseInfo::Test("chaty_test".to_string()).connect()).await
+      DatabaseInfoNoSql::Auto => {
+        if std::env::var("TEST_DB_NO_SQL").is_ok() {
+          boxed(DatabaseInfoNoSql::Test("chaty_test".to_string()).connect()).await
         } else if !config.database.scylladb.is_empty() {
           #[cfg(feature = "scylladb")]
           {
             boxed(
-              DatabaseInfo::ScyllaDb {
+              DatabaseInfoNoSql::ScyllaDb {
                 uri: config.database.scylladb,
                 keyspace: "chaty".to_string(),
               }
@@ -64,21 +70,24 @@ impl DatabaseInfo {
           #[cfg(not(feature = "scylladb"))]
           return Err("scylladb not enabled.".to_string());
         } else {
-          boxed(DatabaseInfo::Reference.connect()).await
+          boxed(DatabaseInfoNoSql::Reference.connect()).await
         }
       }
-      DatabaseInfo::Test(database_name) => {
-        let test_db = std::env::var("TEST_DB")
-          .expect("`TEST_DB` environment variable should be set to REFERENCE or SCYLLADB");
+      DatabaseInfoNoSql::Test(database_name) => {
+        let test_db = std::env::var("TEST_DB_NO_SQL")
+          .expect("`TEST_DB_NO_SQL` environment variable should be set to REFERENCE or SCYLLADB");
 
         match test_db.as_str() {
-          "REFERENCE" => boxed(DatabaseInfo::Reference.connect()).await,
+          "REFERENCE" => boxed(DatabaseInfoNoSql::Reference.connect()).await,
           "SCYLLADB" => {
             #[cfg(feature = "scylladb")]
             {
               boxed(
-                DatabaseInfo::ScyllaDb { uri: config.database.scylladb, keyspace: database_name }
-                  .connect(),
+                DatabaseInfoNoSql::ScyllaDb {
+                  uri: config.database.scylladb,
+                  keyspace: database_name,
+                }
+                .connect(),
               )
               .await
             }
@@ -89,7 +98,7 @@ impl DatabaseInfo {
         }
       }
       #[cfg(feature = "scylladb")]
-      DatabaseInfo::ScyllaDb { uri, keyspace } => {
+      DatabaseInfoNoSql::ScyllaDb { uri, keyspace } => {
         use scylla::client::session::Session;
         use scylla::client::session_builder::SessionBuilder;
 
@@ -104,9 +113,96 @@ impl DatabaseInfo {
           .await
           .map_err(|e| format!("Failed to use keyspace: {}", e))?;
 
-        Ok(Database::Scylladb(ScyllaDb(session)))
+        Ok(DatabaseNoSql::Scylladb(ScyllaDb(session)))
       }
-      DatabaseInfo::Reference => Ok(Database::Reference(Default::default())),
+      DatabaseInfoNoSql::Reference => Ok(DatabaseNoSql::Reference(Default::default())),
+    }
+  }
+}
+
+pub enum DatabaseInfoSql {
+  /// Auto-detect the database in use
+  Auto,
+  /// Auto-detect the database in use and create an empty testing database
+  Test(String),
+  /// Use the mock database
+  Reference,
+  /// Connect to Postgres
+  #[cfg(feature = "postgres")]
+  Postgres { dsn: String },
+}
+
+/// Database
+#[derive(Debug)]
+pub enum DatabaseSql {
+  /// Mock database
+  Reference(ReferenceSqlDb),
+  /// Postgres database
+  #[cfg(feature = "postgres")]
+  Postgres(PostgresDb),
+}
+
+impl DatabaseInfoSql {
+  /// Create a database client from the given database information
+  pub async fn connect(self) -> Result<DatabaseSql, String> {
+    let config = config().await;
+    match self {
+      DatabaseInfoSql::Auto => {
+        if std::env::var("TEST_DB_SQL").is_ok() {
+          boxed(DatabaseInfoSql::Test("chaty_test".to_string()).connect()).await
+        } else if !config.database.postgres.is_empty() {
+          #[cfg(feature = "postgres")]
+          {
+            boxed(DatabaseInfoSql::Postgres { dsn: config.database.postgres }.connect()).await
+          }
+          #[cfg(not(feature = "postgres"))]
+          return Err("postgres not enabled.".to_string());
+        } else {
+          boxed(DatabaseInfoSql::Reference.connect()).await
+        }
+      }
+      DatabaseInfoSql::Test(database_name) => {
+        let test_db = std::env::var("TEST_DB_SQL")
+          .expect("`TEST_DB_SQL` environment variable should be set to REFERENCE or POSTGRES");
+
+        match test_db.as_str() {
+          "REFERENCE" => boxed(DatabaseInfoSql::Reference.connect()).await,
+          "POSTGRES" => {
+            #[cfg(feature = "postgres")]
+            {
+              // For PostgreSQL, database is part of the DSN
+              // You might want to extract/modify the DSN to use the test database
+              boxed(DatabaseInfoSql::Postgres { dsn: config.database.postgres }.connect()).await
+            }
+            #[cfg(not(feature = "postgres"))]
+            return Err("postgres not enabled.".to_string());
+          }
+          _ => unreachable!("must specify REFERENCE or POSTGRES"),
+        }
+      }
+      #[cfg(feature = "postgres")]
+      DatabaseInfoSql::Postgres { dsn } => {
+        use std::time::Duration;
+
+        use sqlx::postgres::PgPoolOptions;
+
+        let pool = PgPoolOptions::new()
+          .max_connections(10)
+          .min_connections(2)
+          .max_lifetime(Duration::from_millis(600000))
+          .idle_timeout(Duration::from_millis(120000))
+          .connect(&dsn)
+          .await
+          .map_err(|e| format!("Failed to connect to PostgreSQL: {}", e))?;
+
+        sqlx::query("SELECT 1")
+          .execute(&pool)
+          .await
+          .map_err(|e| format!("Failed to verify PostgreSQL connection: {}", e))?;
+
+        Ok(DatabaseSql::Postgres(PostgresDb(pool)))
+      }
+      DatabaseInfoSql::Reference => Ok(DatabaseSql::Reference(Default::default())),
     }
   }
 }

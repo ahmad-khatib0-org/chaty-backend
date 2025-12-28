@@ -18,6 +18,7 @@ pub use sentry_anyhow::capture_anyhow;
 pub struct Database {
   pub scylladb: String,
   pub db_name: String,
+  pub postgres: String,
   pub dragonfly: String,
 }
 
@@ -26,6 +27,7 @@ impl Default for Database {
     Self {
       scylladb: "localhost:9042".to_string(),
       db_name: "chaty".to_string(),
+      postgres: "postgresql://chaty@localhost:26257/chaty?sslmode=disable".to_string(),
       dragonfly: "localhost:6379".to_string(),
     }
   }
