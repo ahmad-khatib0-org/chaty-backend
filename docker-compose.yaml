@@ -46,6 +46,32 @@ services:
           memory: 512M
           cpus: "0.5"
 
+  chaty_proxy:
+    image: envoyproxy/envoy:v1.35.0
+    networks: ["chaty-dev"]
+    restart: always
+    volumes:
+      - ./config/envoy.yml:/etc/envoy/envoy.yaml
+      - ./bin/chaty_envoy_filter.wasm:/etc/envoy/wasm/chaty_envoy_filter.wasm:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      [
+        "-c",
+        "/etc/envoy/envoy.yaml",
+        "--component-log-level",
+        "jwt:debug,http:debug,filter:debug",
+      ]
+    ports:
+      - "8091:8091" # next api server
+      - "8092:8092" # next web grpc
+      - "9905:9905" # Envoy admin port
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.3"
+
   # ============================================================================
   # Cache - Dragonfly (Redis-compatible, faster)
   # ============================================================================
@@ -266,7 +292,7 @@ services:
       DSN: postgres://hydra:hydra-password@hydra-db:5432/hydra?sslmode=disable
       HYDRA_SYSTEM_SECRET: this_needs_to_be_32_bytes_minimum_secret_key_12345
     volumes:
-      - ./hydra.yml:/config/hydra.yml:ro
+      - ./config/hydra.yml:/config/hydra.yml:ro
     command: ["serve", "all", "--dev", "--config", "/config/hydra.yml"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4444/health/ready"]
