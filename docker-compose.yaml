@@ -110,36 +110,28 @@ services:
     volumes:
       - redpanda_data:/var/lib/redpanda/data
     ports:
-      - "9092:9092" # Kafka API (internal)
-      - "19092:19092" # Kafka API (external)
-      - "8081:8081" # Schema Registry (internal)
-      - "18081:18081" # Schema Registry (external)
-      - "8082:8082" # Pandaproxy (internal)
-      - "18082:18082" # Pandaproxy (external)
-      - "9644:9644" # Admin API
+      - "19092:19092"
+      - "9644:9644"
     command:
       - redpanda
       - start
-      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
-      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
-      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
-      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
-      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
-      - --rpc-addr redpanda:33145
-      - --advertise-rpc-addr redpanda:33145
       - --mode dev-container
       - --smp 1
-      - --default-log-level=info
+      - --memory 2G
+      - --reserve-memory 0M
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9644/health"]
-      interval: 15s
-      timeout: 10s
-      retries: 15
-      start_period: 60s
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:9644/v1/node_config || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15 # Increased retries to handle the slow ScyllaDB startup
+      start_period: 90s # Increased to 90s to give the cluster time to initialize
     deploy:
       resources:
         limits:
-          memory: 1024M
+          memory: 4G
           cpus: "1.0"
 
   # ============================================================================
