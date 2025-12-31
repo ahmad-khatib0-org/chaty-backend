@@ -126,5 +126,41 @@
   {
     "id": "users.password.hash_failed",
     "tr": "Failed to process password. Please try again."
+  },
+  {
+    "id": "email.confirmation.subject",
+    "tr": "Confirm Your Email Address"
+  },
+  {
+    "id": "email.confirmation.greeting",
+    "tr": "Hello {{ username }},"
+  },
+  {
+    "id": "email.confirmation.intro",
+    "tr": "Thank you for creating an account with Chaty! To complete your registration, please confirm your email address by clicking the button below:"
+  },
+  {
+    "id": "email.confirmation.button_text",
+    "tr": "Confirm Email"
+  },
+  {
+    "id": "email.confirmation.alt_text",
+    "tr": "Or copy and paste this link into your browser:"
+  },
+  {
+    "id": "email.confirmation.expiry_notice",
+    "tr": "This link expires in 24 hours."
+  },
+  {
+    "id": "email.confirmation.not_requested",
+    "tr": "If you didn't create this account, please ignore this email."
+  },
+  {
+    "id": "email.confirmation.signature",
+    "tr": "Best regards,<br>The Chaty Team"
+  },
+  {
+    "id": "email.footer.copyright",
+    "tr": "&copy; 2024 Chaty. All rights reserved."
   }
 ]

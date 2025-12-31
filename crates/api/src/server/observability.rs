@@ -16,6 +16,7 @@ pub struct MetricsCollector {
   pub broker_messages_failed: IntCounter,
   pub request_duration_seconds: HistogramVec,
   pub db_operation_duration_seconds: HistogramVec,
+  pub broker_operation_duration_seconds: HistogramVec,
 }
 
 impl MetricsCollector {
@@ -78,6 +79,15 @@ impl MetricsCollector {
       .register(Box::new(db_operation_duration_seconds.clone()))
       .map_err(|e| e.to_string())?;
 
+    let broker_operation_duration_seconds = HistogramVec::new(
+      HistogramOpts::new("api_broker_operation_duration_seconds ", "Broker operation duration"),
+      &["operation"],
+    )
+    .map_err(|e| e.to_string())?;
+    registry
+      .register(Box::new(broker_operation_duration_seconds.clone()))
+      .map_err(|e| e.to_string())?;
+
     Ok(MetricsCollector {
       users_create_total,
       users_create_failed,
@@ -89,6 +99,7 @@ impl MetricsCollector {
       broker_messages_failed,
       request_duration_seconds,
       db_operation_duration_seconds,
+      broker_operation_duration_seconds,
     })
   }
 
@@ -132,6 +143,10 @@ impl MetricsCollector {
 
   pub fn observe_db_operation_duration(&self, operation: &str, duration_secs: f64) {
     self.db_operation_duration_seconds.with_label_values(&[operation]).observe(duration_secs);
+  }
+
+  pub fn observe_broker_operation_duration(&self, operation: &str, duration_secs: f64) {
+    self.broker_operation_duration_seconds.with_label_values(&[operation]).observe(duration_secs);
   }
 }
 

@@ -1,0 +1,13 @@
+{{ email_confirmation_subject }}
+
+{{ email_confirmation_greeting }}
+
+{{ email_confirmation_intro }}
+
+{{ confirmation_url }}
+
+{{ email_confirmation_expiry_notice }}
+
+{{ email_confirmation_not_requested }}
+
+{{ email_confirmation_signature }}

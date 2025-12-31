@@ -7,7 +7,7 @@ use chaty_result::{
   errors::{DBError, ErrorType},
 };
 
-use crate::{CachedUserData, PostgresDb, UsersRepository};
+use crate::{CachedUserData, PostgresDb, Token, UsersRepository};
 
 #[async_trait()]
 impl UsersRepository for PostgresDb {
@@ -53,12 +53,40 @@ impl UsersRepository for PostgresDb {
           ErrorType::DatabaseError
         };
 
-        Err(DBError {
-          err_type,
-          msg: format!("failed to create user: {}", err),
-          path,
-          ..Default::default()
-        })
+        let msg = format!("failed to create user: {}", err);
+        Err(DBError { err_type, msg, path, err: Box::new(err) })
+      }
+    }
+  }
+
+  async fn tokens_create(&self, _ctx: Arc<Context>, token: &Token) -> Result<(), DBError> {
+    let path = "database.users.tokens_create".to_string();
+
+    let result: Result<_, _> = sqlx::query(
+      "INSERT INTO tokens (id, user_id, token, type, used, created_at, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    )
+    .bind(&token.id)
+    .bind(&token.user_id)
+    .bind(&token.token)
+    .bind(token.r#type.to_string())
+    .bind(token.used)
+    .bind(token.created_at)
+    .bind(token.expires_at)
+    .execute(self.db())
+    .await;
+
+    match result {
+      Ok(_) => Ok(()),
+      Err(err) => {
+        let err_type = if err.to_string().contains("unique constraint") {
+          ErrorType::ResourceExists
+        } else {
+          ErrorType::DatabaseError
+        };
+
+        let msg = format!("failed to create a token: {}", err);
+        Err(DBError { err_type, msg, path, err: Box::new(err) })
       }
     }
   }
@@ -77,18 +105,14 @@ impl UsersRepository for PostgresDb {
 
     match row {
       Ok(Some(_)) => Ok(CachedUserData { ..Default::default() }),
-      Ok(None) => Err(DBError {
-        err_type: ErrorType::NotFound,
-        msg: "user not found".to_string(),
-        path,
-        ..Default::default()
-      }),
-      Err(err) => Err(DBError {
-        err_type: ErrorType::DatabaseError,
-        msg: format!("failed to fetch user auth data: {}", err),
-        path,
-        ..Default::default()
-      }),
+      Ok(None) => {
+        let msg = "user not found".to_string();
+        Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+      }
+      Err(err) => {
+        let msg = format!("failed to fetch user auth data: {}", err);
+        Err(DBError { err_type: ErrorType::DatabaseError, msg, path, err: Box::new(err) })
+      }
     }
   }
 }

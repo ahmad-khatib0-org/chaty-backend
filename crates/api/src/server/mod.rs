@@ -1,3 +1,7 @@
+pub mod broker;
+pub mod email;
+pub mod observability;
+
 use std::io::ErrorKind;
 use std::sync::Arc;
 
@@ -9,22 +13,21 @@ use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 
 use crate::controller::{ApiController, ApiControllerArgs};
+use crate::email::{create_email_service, EmailService};
 use crate::observability::MetricsCollector;
+use crate::worker::{WorkerApi, WorkerApiArgs};
 
-pub mod broker;
-pub mod observability;
+use broker::BrokerApi;
 
-use broker::BrokerConfig;
-
-#[allow(dead_code)]
-#[derive(Debug)]
 pub struct ApiServer {
   pub(super) nosql_db: Arc<DatabaseNoSql>,
   pub(super) sql_db: Arc<DatabaseSql>,
   pub(super) config: Arc<Settings>,
-  pub(super) broker: Arc<BrokerConfig>,
+  pub(super) broker: Arc<BrokerApi>,
+  pub(super) email_service: Arc<dyn EmailService>,
   pub(super) metrics_registry: Arc<Registry>,
   pub(super) metrics: Arc<MetricsCollector>,
+  pub(super) worker: Arc<WorkerApi>,
 }
 
 impl ApiServer {
@@ -57,15 +60,27 @@ impl ApiServer {
       })?;
 
     // Initialize Redpanda broker connection
-    let broker = BrokerConfig::new(&config)
+    let broker = BrokerApi::new(&config)
       .await
       .map_err(|err| se(err, ErrorType::Connection, "failed to initialize broker"))?;
+
+    // Initialize email service
+    let email_service = create_email_service(&config)
+      .map_err(|err| se(err, ErrorType::ConfigError, "failed to initialize email service"))?;
+
+    let worker = WorkerApi::new(WorkerApiArgs {
+      config: Arc::new(config.clone()),
+      email_service: email_service.clone(),
+    })
+    .await?;
 
     let server = ApiServer {
       nosql_db: Arc::new(nosql_db),
       sql_db: Arc::new(sql_db),
       config: Arc::new(config),
       broker: Arc::new(broker),
+      worker: Arc::new(worker),
+      email_service,
       metrics_registry: Arc::new(metrics_registry),
       metrics: Arc::new(metrics),
     };
@@ -80,9 +95,10 @@ impl ApiServer {
       sql_db: self.sql_db.clone(),
       config: self.config.clone(),
       broker: self.broker.clone(),
-      metrics_registry: self.metrics_registry.clone(),
       metrics: self.metrics.clone(),
     };
+
+    self.worker.start().await?;
 
     let controller = ApiController::new(ctr_args);
     controller.run().await?; // this will block

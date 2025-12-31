@@ -56,17 +56,19 @@ impl Default for Kafka {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Topics {
-  pub email_confirmation: String,
   pub password_reset: String,
   pub user_created: String,
+  pub email_confirmation: String,
+  pub email_confirmation_dlq: String,
 }
 
 impl Default for Topics {
   fn default() -> Self {
     Self {
-      email_confirmation: "api.users.email_confirmation".to_string(),
       password_reset: "api.users.password_reset".to_string(),
       user_created: "api.users.user_created".to_string(),
+      email_confirmation: "api.users.email_confirmation".to_string(),
+      email_confirmation_dlq: "api.users.email_confirmation_dlq".to_string(),
     }
   }
 }
@@ -161,6 +163,41 @@ impl Default for ApiSmtp {
       port: Some(1025),
       use_tls: Some(false),
       use_starttls: Some(false),
+    }
+  }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ApiEmailSendGrid {
+  pub api_key: String,
+  pub from_address: String,
+  pub reply_to: Option<String>,
+}
+
+impl Default for ApiEmailSendGrid {
+  fn default() -> Self {
+    Self { api_key: String::new(), from_address: String::new(), reply_to: None }
+  }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ApiEmail {
+  #[serde(default = "default_email_provider")]
+  pub provider: String,
+  pub smtp: ApiSmtp,
+  pub sendgrid: ApiEmailSendGrid,
+}
+
+fn default_email_provider() -> String {
+  "smtp".to_string()
+}
+
+impl Default for ApiEmail {
+  fn default() -> Self {
+    Self {
+      provider: "smtp".to_string(),
+      smtp: ApiSmtp::default(),
+      sendgrid: ApiEmailSendGrid::default(),
     }
   }
 }
@@ -317,7 +354,7 @@ impl Default for ApiUsers {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Api {
   pub registration: ApiRegistration,
-  pub smtp: ApiSmtp,
+  pub email: ApiEmail,
   pub security: ApiSecurity,
   pub workers: ApiWorkers,
   pub livekit: ApiLiveKit,
@@ -328,7 +365,7 @@ impl Default for Api {
   fn default() -> Self {
     Self {
       registration: ApiRegistration::default(),
-      smtp: ApiSmtp::default(),
+      email: ApiEmail::default(),
       security: ApiSecurity::default(),
       workers: ApiWorkers::default(),
       livekit: ApiLiveKit::default(),
@@ -685,8 +722,12 @@ impl Settings {
 
     let _ = tracing::subscriber::set_default(subscriber);
 
-    if self.api.smtp.host.is_empty() {
+    if self.api.email.provider == "smtp" && self.api.email.smtp.host.is_empty() {
       warn!("No SMTP settings specified! Remember to configure email.");
+    }
+
+    if self.api.email.provider == "sendgrid" && self.api.email.sendgrid.api_key.is_empty() {
+      warn!("No SendGrid API key specified! Remember to configure email.");
     }
 
     if self.api.security.captcha.hcaptcha_key.is_empty() {

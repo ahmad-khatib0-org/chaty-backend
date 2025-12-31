@@ -1,23 +1,25 @@
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
+use argon2::password_hash::SaltString;
+use argon2::{Argon2, PasswordHasher};
 use chaty_proto::{User, UsersCreateRequest};
 use chaty_result::{context::Context, errors::AppError};
+use chaty_utils::time::time_get_millis;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use serde_json::{json, Value};
 use tonic::Code;
-use validator::ValidateEmail;
-use regex::Regex;
-use once_cell::sync::Lazy;
-use argon2::{Argon2, PasswordHasher};
-use argon2::password_hash::SaltString;
 use ulid::Ulid;
+use validator::ValidateEmail;
 
 /// Regex for valid usernames
 /// Allows letters, digits, underscores, dots, and hyphens
 /// Blocks zero-width spaces and lookalike characters
-static RE_USERNAME: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^[a-zA-Z0-9._-]{3,60}$").unwrap()
-});
+static RE_USERNAME: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z0-9._-]{3,60}$").unwrap());
+static USERS_EMAIL_MAX_LENGHT: usize = 255;
+static USERS_USERNAME_MAX_LENGTH: usize = 60;
+static USERS_PASSWORD_MIN_LENGTH: usize = 8;
+static USERS_PASSWORD_MAX_LENGTH: usize = 72;
 
 pub fn users_create_validate(
   ctx: Arc<Context>,
@@ -35,7 +37,7 @@ pub fn users_create_validate(
   if !req.email.validate_email() {
     return Err(ae("users.email.invalid"));
   }
-  if req.email.len() > 255 {
+  if req.email.len() > USERS_EMAIL_MAX_LENGHT {
     return Err(ae("users.email.too_long"));
   }
 
@@ -46,7 +48,7 @@ pub fn users_create_validate(
   if !RE_USERNAME.is_match(&req.username) {
     return Err(ae("users.username.invalid"));
   }
-  if req.username.len() > 64 {
+  if req.username.len() > USERS_USERNAME_MAX_LENGTH {
     return Err(ae("users.username.too_long"));
   }
 
@@ -54,7 +56,7 @@ pub fn users_create_validate(
   if req.password.trim().is_empty() {
     return Err(ae("users.password.required"));
   }
-  if req.password.len() < 8 {
+  if req.password.len() < USERS_PASSWORD_MIN_LENGTH {
     return Err(ae("users.password.too_short"));
   }
   if !req.password.chars().any(|c| c.is_uppercase()) {
@@ -84,9 +86,6 @@ pub async fn users_create_pre_save(
     return AppError::new(ctx.clone(), path, id, None, "", Code::Internal.into(), None);
   };
 
-  // Generate ULID for user ID
-  let user_id = Ulid::new().to_string();
-
   // Hash password with Argon2
   let salt = SaltString::generate(rand::thread_rng());
   let password_hash = Argon2::default()
@@ -95,13 +94,10 @@ pub async fn users_create_pre_save(
     .to_string();
 
   // Get current timestamp in milliseconds
-  let now_millis = SystemTime::now()
-    .duration_since(UNIX_EPOCH)
-    .unwrap_or_default()
-    .as_millis() as u64;
+  let now_millis = time_get_millis();
 
   Ok(User {
-    id: user_id,
+    id: Ulid::new().to_string(),
     username: req.username.clone(),
     email: req.email.clone(),
     password: password_hash,

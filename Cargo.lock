@@ -590,20 +590,26 @@ name = "chaty-api"
 version = "0.1.0"
 dependencies = [
  "argon2",
+ "async-trait",
  "chaty-config",
  "chaty-database",
  "chaty-proto",
  "chaty-result",
+ "chaty-utils",
  "once_cell",
  "opentelemetry 0.21.0",
  "opentelemetry-jaeger",
  "opentelemetry-prometheus 0.14.1",
  "prometheus",
  "rand 0.8.5",
+ "rdkafka 0.38.0",
  "redpanda",
  "regex",
+ "serde",
  "serde_json",
+ "tera",
  "tokio",
+ "tokio-stream",
  "tonic 0.13.1",
  "tower 0.5.2",
  "tracing",
@@ -3156,6 +3162,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "rdkafka"
+version = "0.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f1856d72dbbbea0d2a5b2eaf6af7fb3847ef2746e883b11781446a51dbc85c0"
+dependencies = [
+ "futures-channel",
+ "futures-util",
+ "libc",
+ "log",
+ "rdkafka-sys",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "slab",
+ "tokio",
+]
+
+[[package]]
 name = "rdkafka-sys"
 version = "4.9.0+2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3216,7 +3240,7 @@ checksum = "f79ef24b6fb7b651d73b270edb78cd08e48d06e7290bdbc3f50b19b39a682adf"
 dependencies = [
  "chrono",
  "futures",
- "rdkafka",
+ "rdkafka 0.29.0",
  "thiserror 1.0.69",
  "tokio",
  "tracing",

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use chaty_database::{Token, TokenType};
 use chaty_proto::{
   users_create_response::Response::{Data, Error},
   UsersCreateRequest, UsersCreateResponse, UsersCreateResponseData,
@@ -10,9 +11,11 @@ use chaty_result::{
   errors::{AppError, AppErrorErrors, BoxedErr, ErrorType, ERROR_ID_INTERNAL},
   tr,
 };
+use chaty_utils::time::time_get_seconds;
 use serde_json::json;
 use tokio::{spawn, sync::Mutex};
 use tonic::{Code, Request, Response, Status};
+use ulid::Ulid;
 
 use crate::{
   controller::{audit::process_audit, ApiController},
@@ -96,14 +99,58 @@ pub async fn users_create(
     return Ok(return_err(err_to_return).await);
   }
 
+  let now = time_get_seconds();
+
+  let token = Token {
+    id: Ulid::new().to_string(),
+    user_id: user.id.to_string(),
+    token: format!("confirm_{}", Ulid::new()),
+    r#type: TokenType::EmailVerification,
+    used: false,
+    created_at: now as i64,
+    expires_at: (now + 86400) as i64, // 24 hours
+  };
+
+  if let Err(err) = ctr.sql_db.tokens_create(ctx.clone(), &token).await {
+    tracing::error!("Failed to create email confirmation token: {:?}", err);
+    ctr.metrics.record_db_error("token_create", &err.msg);
+    // Publish to DLQ on token creation failure
+    let message = json!({
+      "user_id": user.id.to_string(),
+      "email": user.email,
+      "username": user.username
+    });
+    if let Err(dlq_err) = ctr.broker.clone().publish_email_confirmation_dlq(&message).await {
+      tracing::error!("Failed to publish to DLQ: {:?}", dlq_err);
+    }
+    ctr.metrics.record_users_create_failure();
+    let err_to_return = ie(Box::new(err));
+    return Ok(return_err(err_to_return).await);
+  }
+
   // Publish email confirmation message to broker
   let broker_start = std::time::Instant::now();
-  let message = json!({ "user_id": user.id, "email": user.email });
+  let message = json!({
+    "user_id": user.id.to_string(),
+    "email": user.email,
+    "username": user.username,
+    "confirmation_token": token.token,
+    "language": lang
+  });
 
-  // TODO: Implement actual broker message publishing
-  // For now, just record the intent
-  ctr.metrics.record_broker_message_sent();
-  let _broker_duration = broker_start.elapsed().as_secs_f64();
+  if let Err(err) = ctr.broker.publish_email_confirmation(&message).await {
+    tracing::error!("Failed to publish email confirmation message: {:?}", err);
+    ctr.metrics.record_broker_message_failed();
+    // Keep user but mark token creation as failed - publish to DLQ
+    if let Err(dlq_err) = ctr.broker.publish_email_confirmation_dlq(&message).await {
+      tracing::error!("Failed to publish to DLQ: {:?}", dlq_err);
+    }
+  } else {
+    ctr.metrics.record_broker_message_sent();
+  }
+
+  let broker_duration = broker_start.elapsed().as_secs_f64();
+  ctr.metrics.observe_broker_operation_duration("email_confirmation_publish", broker_duration);
 
   let data = get_audit().await;
   audit.set_event_parameter(EventParameterKey::UsersCreate, data);

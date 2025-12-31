@@ -4,7 +4,6 @@ use std::sync::Arc;
 use chaty_result::errors::{BoxedErr, ErrorType, InternalError};
 use deadpool_redis::{Connection, Pool};
 use tonic::async_trait;
-use tower::BoxError;
 use tracing::instrument;
 
 use crate::models::network::CachedTokenStatus;
@@ -41,7 +40,7 @@ pub struct DefaultRedisClient {
 }
 
 impl DefaultRedisClient {
-  pub fn not_found_err(path: &str, jti: &str) -> BoxError {
+  pub fn not_found_err(path: &str, jti: &str) -> BoxedErr {
     let msg = format!("redis key not found: {}", jti);
     let err = Box::new(Error::new(ErrorKind::NotFound, msg.clone()));
     Box::new(InternalError::new(path.into(), err, ErrorType::InternalError, false, msg))

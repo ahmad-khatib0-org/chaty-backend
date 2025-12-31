@@ -33,6 +33,7 @@ topics:
   email_confirmation: "api.users.email_confirmation"
   password_reset: "api.users.password_reset"
   user_created: "api.users.user_created"
+  email_confirmation_dlq: "api.users.email_confirmation_dlq"
 
 # OAuth 2.0 / OpenID Connect configuration (Hydra)
 oauth:
@@ -76,17 +77,23 @@ api:
   registration:
     # Whether an invite should be required for registration
     invite_only: false
-  # Email/SMTP server configuration for verification
-  # Using MailDev for development (port 1025)
-  smtp:
-    host: "maildev"
-    username: "smtp"
-    password: "smtp"
-    from_address: "noreply@chaty.local"
-    reply_to: null
-    port: 25
-    use_tls: false
-    use_starttls: false
+  # Email service configuration
+  email:
+    # Provider: smtp or sendgrid
+    provider: "smtp"
+    smtp:
+      host: "maildev"
+      username: "smtp"
+      password: "smtp"
+      from_address: "noreply@chaty.local"
+      reply_to: null
+      port: 25
+      use_tls: false
+      use_starttls: false
+    sendgrid:
+      api_key: ""
+      from_address: ""
+      reply_to: null
   # Security and API keys
   security:
     # Authifier Shield API key
