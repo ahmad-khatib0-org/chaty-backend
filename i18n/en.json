@@ -64,11 +64,67 @@
     "tr": "Authentication required. Please log in and try again."
   },
   {
+    "id": "users.create.success",
+    "tr": "An account created successfully, And a new email will be sent to your inbox in order to confirm your newly created account"
+  },
+  {
     "id": "users.username.invalid",
     "tr": "The uesrname is invalid"
   },
   {
     "id": "users.email.invalid",
     "tr": "The provided email is invalid"
+  },
+  {
+    "id": "users.email.required",
+    "tr": "Email address is required"
+  },
+  {
+    "id": "users.email.too_long",
+    "tr": "Email address is too long"
+  },
+  {
+    "id": "users.email.already_exists",
+    "tr": "An account with this email address already exists"
+  },
+  {
+    "id": "users.username.required",
+    "tr": "Username is required"
+  },
+  {
+    "id": "users.username.too_long",
+    "tr": "Username is too long"
+  },
+  {
+    "id": "users.username.already_exists",
+    "tr": "This username is already taken"
+  },
+  {
+    "id": "users.password.required",
+    "tr": "Password is required"
+  },
+  {
+    "id": "users.password.too_short",
+    "tr": "Password must be at least 8 characters long"
+  },
+  {
+    "id": "users.password.requires_uppercase",
+    "tr": "Password must contain at least one uppercase letter"
+  },
+  {
+    "id": "users.password.requires_lowercase",
+    "tr": "Password must contain at least one lowercase letter"
+  },
+  {
+    "id": "users.password.requires_number",
+    "tr": "Password must contain at least one number"
+  },
+  {
+    "id": "users.password.requires_symbol",
+    "tr": "Password must contain at least one special character"
+  },
+  {
+    "id": "users.password.hash_failed",
+    "tr": "Failed to process password. Please try again."
   }
 ]

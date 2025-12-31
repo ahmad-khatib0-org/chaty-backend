@@ -53,7 +53,7 @@ impl Server {
     self.redis = Some(Arc::new(self.init_redis().await?));
     self.sql_db = Some(Arc::new(sql_db));
 
-    let (_registry, metrics) = init_otel("chaty-auth").map_err(|err| {
+    let (_registry, metrics) = init_otel().map_err(|err| {
       ie(
         "failed to initialize OTEL",
         Box::new(std::io::Error::new(ErrorKind::Other, format!("{:?}", err))),

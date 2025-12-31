@@ -1,3 +1,4 @@
+pub(crate) mod audit;
 mod router;
 mod users;
 
@@ -10,22 +11,38 @@ use chaty_result::{errors::BoxedErr, middleware_context};
 use tonic::{service::InterceptorLayer, transport::Server};
 use tower::ServiceBuilder;
 
+use crate::server::broker::BrokerConfig;
+use crate::server::observability::MetricsCollector;
+use prometheus::Registry;
+
 pub struct ApiControllerArgs {
   pub(super) nosql_db: Arc<DatabaseNoSql>,
   pub(super) sql_db: Arc<DatabaseSql>,
   pub(super) config: Arc<Settings>,
+  pub(super) broker: Arc<BrokerConfig>,
+  pub(super) metrics_registry: Arc<Registry>,
+  pub(super) metrics: Arc<MetricsCollector>,
 }
 
 pub(crate) struct ApiController {
   pub(super) nosql_db: Arc<DatabaseNoSql>,
   pub(super) sql_db: Arc<DatabaseSql>,
   pub(super) config: Arc<Settings>,
+  pub(super) broker: Arc<BrokerConfig>,
+  pub(super) metrics_registry: Arc<Registry>,
+  pub(super) metrics: Arc<MetricsCollector>,
 }
 
 impl ApiController {
   pub fn new(args: ApiControllerArgs) -> ApiController {
-    let controller =
-      ApiController { nosql_db: args.nosql_db, sql_db: args.sql_db, config: args.config };
+    let controller = ApiController {
+      nosql_db: args.nosql_db,
+      sql_db: args.sql_db,
+      config: args.config,
+      broker: args.broker,
+      metrics_registry: args.metrics_registry,
+      metrics: args.metrics,
+    };
 
     controller
   }

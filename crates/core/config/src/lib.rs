@@ -55,6 +55,23 @@ impl Default for Kafka {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct Topics {
+  pub email_confirmation: String,
+  pub password_reset: String,
+  pub user_created: String,
+}
+
+impl Default for Topics {
+  fn default() -> Self {
+    Self {
+      email_confirmation: "api.users.email_confirmation".to_string(),
+      password_reset: "api.users.password_reset".to_string(),
+      user_created: "api.users.user_created".to_string(),
+    }
+  }
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct OAuth {
   pub public_url: String,
   pub admin_url: String,
@@ -92,6 +109,7 @@ pub struct Hosts {
   pub gifs: String,
   pub auth: String,
   pub livekit: HashMap<String, String>,
+  pub otel_collector: String,
 }
 
 impl Default for Hosts {
@@ -104,6 +122,7 @@ impl Default for Hosts {
       gifs: "http://localhost:3004".to_string(),
       auth: "0.0.0.0:50051".to_string(),
       livekit: HashMap::new(),
+      otel_collector: "http://0.0.0.0:4317".to_string(),
     }
   }
 }
@@ -586,6 +605,7 @@ impl Default for Sentry {
 pub struct Settings {
   pub database: Database,
   pub kafka: Kafka,
+  pub topics: Topics,
   pub oauth: OAuth,
   pub hosts: Hosts,
   pub api: Api,
@@ -603,6 +623,7 @@ impl Default for Settings {
     Self {
       database: Database::default(),
       kafka: Kafka::default(),
+      topics: Topics::default(),
       oauth: OAuth::default(),
       hosts: Hosts::default(),
       api: Api::default(),

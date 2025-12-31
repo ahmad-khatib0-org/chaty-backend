@@ -32,6 +32,12 @@ kafka:
   # Security protocol (e.g., PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL)
   security_protocol: null
 
+# Redpanda topics configuration
+topics:
+  email_confirmation: "api.users.email_confirmation"
+  password_reset: "api.users.password_reset"
+  user_created: "api.users.user_created"
+
 # OAuth 2.0 / OpenID Connect configuration (Hydra)
 oauth:
   # Public endpoint of Hydra authorization server

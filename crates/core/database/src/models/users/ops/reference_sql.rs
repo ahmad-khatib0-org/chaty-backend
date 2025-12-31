@@ -26,8 +26,8 @@ impl UsersRepository for ReferenceSqlDb {
 
   async fn users_get_auth_data(
     &self,
-    ctx: Arc<Context>,
-    user_id: &str,
+    _ctx: Arc<Context>,
+    _user_id: &str,
   ) -> Result<CachedUserData, DBError> {
     Ok(CachedUserData { ..Default::default() })
   }

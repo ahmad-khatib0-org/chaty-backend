@@ -6,7 +6,7 @@ async fn main() -> Result<(), BoxedErr> {
   let server = ApiServer::new().await;
 
   match server {
-    Ok(mut srv) => return srv.run().await,
+    Ok(srv) => return srv.run().await,
     Err(e) => Err(e),
   }
 }
