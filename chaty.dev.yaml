@@ -15,7 +15,7 @@ database:
   postgres: postgresql://chaty@cockroachdb:26257/chaty?sslmode=disable
   # Dragonfly connection URL (Redis-compatible cache)
   # For development running locally on your machine
-  dragonfly: "dragonfly://localhost:6379"
+  dragonfly: "redis://dragonfly:6379"
 
 # Kafka/Redpanda message broker configuration
 kafka:
@@ -51,6 +51,8 @@ oauth:
   client_secret: ""
   # Redirect URI after successful authentication
   redirect_uri: "http://localhost:3000/api/auth/callback"
+  # Email confirmation URL
+  confirmation_url: "http://localhost:3000/auth/email-confirmation"
   # Scopes to request
   scopes:
     - "openid"
@@ -68,7 +70,7 @@ oauth:
 # Remember to change these to https/wss where appropriate in production!
 hosts:
   app: "http://localhost:3000"
-  api: "http://localhost:50050"
+  api: "0.0.0.0:50050"
   ws: "ws://localhost:3002"
   files: "http://localhost:3003"
   gifs: "http://localhost:3004"

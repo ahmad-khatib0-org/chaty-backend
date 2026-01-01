@@ -2,8 +2,6 @@ use std::io::{Error, ErrorKind};
 
 use chaty_result::errors::{BoxedErr, ErrorType, InternalError};
 use prometheus::Registry;
-use tracing_subscriber::filter::EnvFilter;
-use tracing_subscriber::layer::SubscriberExt;
 
 use crate::controller::metrics::MetricsCollector;
 
@@ -33,15 +31,6 @@ pub fn init_otel() -> Result<(Registry, MetricsCollector), BoxedErr> {
   let metrics = MetricsCollector::new(&registry).map_err(|e| {
     ie("failed to init metrics collector", Box::new(Error::new(ErrorKind::Other, e)))
   })?;
-
-  // Set up environment filter for logs
-  let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-
-  // Initialize tracing subscriber for structured logging
-  let subscriber =
-    tracing_subscriber::registry().with(env_filter).with(tracing_subscriber::fmt::layer());
-
-  let _ = tracing::subscriber::set_default(subscriber);
 
   Ok((registry, metrics))
 }

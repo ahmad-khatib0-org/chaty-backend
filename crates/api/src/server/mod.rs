@@ -8,7 +8,10 @@ use std::sync::Arc;
 use chaty_config::{config, Settings};
 use chaty_database::{DatabaseInfoNoSql, DatabaseInfoSql, DatabaseNoSql, DatabaseSql};
 use chaty_result::errors::{BoxedErr, ErrorType, SimpleError};
+use chaty_result::translations_init;
 use prometheus::Registry;
+use tokio::spawn;
+use tracing::error;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 
@@ -38,6 +41,9 @@ impl ApiServer {
 
     ApiServer::setup_logging();
     let config = config().await;
+
+    translations_init(10, config.default_language.clone(), config.available_languages.clone())
+      .map_err(|err| se(Box::new(err.clone()), ErrorType::InternalError, &err.to_string()))?;
 
     // Initialize observability
     let (metrics_registry, metrics) = observability::init_otel()?;
@@ -98,7 +104,12 @@ impl ApiServer {
       metrics: self.metrics.clone(),
     };
 
-    self.worker.start().await?;
+    let worker_clone = self.worker.clone();
+    spawn(async move {
+      if let Err(e) = worker_clone.start().await {
+        error!("Worker loop crashed: {:?}", e);
+      }
+    });
 
     let controller = ApiController::new(ctr_args);
     controller.run().await?; // this will block

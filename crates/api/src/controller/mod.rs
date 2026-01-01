@@ -10,6 +10,7 @@ use chaty_proto::chaty_service_server::ChatyServiceServer;
 use chaty_result::{errors::BoxedErr, middleware_context};
 use tonic::{service::InterceptorLayer, transport::Server};
 use tower::ServiceBuilder;
+use tracing::info;
 
 use crate::server::broker::BrokerApi;
 use crate::server::observability::MetricsCollector;
@@ -51,6 +52,7 @@ impl ApiController {
     let svc = ChatyServiceServer::new(controller);
     let layer_stack = ServiceBuilder::new().layer(InterceptorLayer::new(middleware_context));
 
+    info!("the api server is listening on: {}", url);
     Server::builder()
       .layer(layer_stack)
       .add_service(svc)

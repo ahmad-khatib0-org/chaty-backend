@@ -4,7 +4,10 @@ use std::{io::ErrorKind, sync::Arc};
 
 use chaty_config::{config, Settings};
 use chaty_database::{DatabaseInfoSql, DatabaseSql};
-use chaty_result::errors::{BoxedErr, ErrorType, InternalError};
+use chaty_result::{
+  errors::{BoxedErr, ErrorType, InternalError},
+  translations_init,
+};
 use deadpool_redis::Pool as RedisPool;
 use tokio::{
   spawn,
@@ -27,6 +30,7 @@ impl Server {
 
     let srv =
       Server { errors_send: tx, config: Arc::new(Settings::default()), redis: None, sql_db: None };
+    srv.init_logger();
 
     let srv_clone = srv.clone();
     spawn(async move { srv_clone.errors_listener(rx).await });
@@ -48,6 +52,14 @@ impl Server {
       DatabaseInfoSql::Postgres { dsn: config.database.postgres.clone() }.connect().await.map_err(
         |err| ie(&err.clone(), Box::new(std::io::Error::new(ErrorKind::NotConnected, err))),
       )?;
+
+    translations_init(10, config.default_language.clone(), config.available_languages.clone())
+      .map_err(|err| {
+        ie(
+          "failed to translations",
+          Box::new(std::io::Error::new(ErrorKind::Other, format!("{:?}", err))),
+        )
+      })?;
 
     self.config = Arc::new(config);
     self.redis = Some(Arc::new(self.init_redis().await?));

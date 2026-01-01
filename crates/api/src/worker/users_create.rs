@@ -116,11 +116,9 @@ impl WorkerApi {
     let email_footer_copyright = tr::<()>(lang, "email.footer.copyright", None)
       .unwrap_or("&copy; 2024 Chaty. All rights reserved.".to_string());
 
+    let base = self.config.oauth.confirmation_url.clone();
     // Render templates with user data using Tera
-    let confirmation_url = format!(
-      "http://localhost:3000/api/auth/email-confirmation?token={}",
-      message.confirmation_token
-    );
+    let confirmation_url = format!("{}?token={}", base, message.confirmation_token);
 
     let mut context = tera::Context::new();
     context.insert("username", &message.username);

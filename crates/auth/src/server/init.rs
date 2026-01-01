@@ -2,6 +2,9 @@ use std::time::Duration;
 
 use chaty_result::errors::{BoxedErr, ErrorType, InternalError};
 use deadpool_redis::{Config, Pool, PoolConfig, Runtime, Timeouts};
+use tracing_subscriber::filter::EnvFilter;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 use super::Server;
 
@@ -28,5 +31,11 @@ impl Server {
       msg: "failed to create a redis pool".into(),
       path: "auth.server.init_redis".into(),
     })?)
+  }
+
+  pub fn init_logger(&self) {
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+
+    tracing_subscriber::registry().with(env_filter).with(tracing_subscriber::fmt::layer()).init();
   }
 }

@@ -83,12 +83,12 @@ static_resources:
                               claim_name: "jti"
                       rules:
                         - match:
-                            prefix: "/" # Apply to all routes
+                            prefix: "/"
                           requires:
                             requires_any:
                               requirements:
-                                - provider_name: hydra_jwt # Validate if JWT present
-                                - allow_missing: {} # Allow if no JWT
+                                - provider_name: hydra_jwt
+                                - allow_missing: {}
                   - name: envoy.filters.http.ext_authz
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
@@ -136,8 +136,8 @@ static_resources:
                                 - exact: "http://localhost:3000"
                                 - exact: "http://localhost:3001"
                               allow_methods: "GET,POST,DELETE,PUT,OPTIONS"
-                              allow_headers: "Content-Type,Authorization,Origin,x-grpc-web,x-request-id,x-ip-address,x-timezone,accept-language,user-agent"
-                              expose_headers: "X-Request-ID"
+                              allow_headers: "Content-Type,Authorization,Origin,connect-protocol-version,x-request-id,x-ip-address,x-timezone,accept-language,user-agent,x-grpc-web,connect-timeout-ms"
+                              expose_headers: "X-Request-ID,Grpc-Status,Grpc-Message"
                               max_age: "3600s"
                               allow_credentials: true
                 http_filters:
@@ -193,8 +193,8 @@ static_resources:
                           requires:
                             requires_any:
                               requirements:
-                                - provider_name: hydra_jwt # Validate if JWT present
-                                - allow_missing: {} # Allow if no JWT
+                                - provider_name: hydra_jwt
+                                - allow_missing: {}
                   - name: envoy.filters.http.ext_authz
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
@@ -207,10 +207,10 @@ static_resources:
                   - name: envoy.filters.http.buffer
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.buffer.v3.Buffer
-                      max_request_bytes: 10485760 # 10mb
-                  - name: envoy.filters.http.grpc_web
+                      max_request_bytes: 10485760
+                  - name: envoy.filters.http.connect_grpc_bridge
                     typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.connect_grpc_bridge.v3.FilterConfig
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router

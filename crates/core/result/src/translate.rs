@@ -16,9 +16,9 @@ struct TranslationElement {
   pub tr: String,
 }
 
-static I18N_DIR: &str = "../../../../i18n";
+const I18N_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../i18n");
 
-#[derive(Debug, ThisError)]
+#[derive(Debug, Clone, ThisError)]
 pub enum TranslationError {
   #[error("IO error: {0}")]
   Io(String),
@@ -57,18 +57,19 @@ fn load_translations() -> Result<HashMap<String, HashMap<String, String>>, Trans
 
   for entry in fs::read_dir(I18N_DIR)? {
     let entry = entry?; // This ? also works now
-    let path = entry.path();
+    let entry_path = entry.path();
 
-    if path.extension().and_then(|ext| ext.to_str()) == Some("json") {
-      let lang = path
+    if entry_path.extension().and_then(|ext| ext.to_str()) == Some("json") {
+      let lang = entry_path
         .file_stem()
         .and_then(|stem| stem.to_str())
         .ok_or_else(|| TranslationError::Io("Invalid filename".to_string()))?
         .to_string();
 
-      let content = fs::read_to_string(&path)?;
+      let content = fs::read_to_string(&entry_path)?;
 
       let translations: Vec<TranslationElement> = serde_json::from_str(&content)?;
+      println!("the file content {:?}", translations);
 
       let mut lang_map = HashMap::new();
       for element in translations {

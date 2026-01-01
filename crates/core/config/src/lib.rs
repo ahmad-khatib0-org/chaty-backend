@@ -1,5 +1,5 @@
 use std::time::Duration;
-use std::{collections::HashMap, env, fs};
+use std::{collections::HashMap, env, fs, path::Path};
 
 use cached::proc_macro::cached;
 use futures_locks::RwLock;
@@ -29,7 +29,7 @@ impl Default for Database {
       scylladb: "localhost:9042".to_string(),
       db_name: "chaty".to_string(),
       postgres: "postgresql://chaty@localhost:26257/chaty?sslmode=disable".to_string(),
-      dragonfly: "localhost:6379".to_string(),
+      dragonfly: "redis://0.0.0.0:6379".to_string(),
     }
   }
 }
@@ -85,6 +85,7 @@ pub struct OAuth {
   pub token_endpoint: String,
   pub auth_endpoint: String,
   pub userinfo_endpoint: String,
+  pub confirmation_url: String,
 }
 
 impl Default for OAuth {
@@ -98,6 +99,7 @@ impl Default for OAuth {
       token_endpoint: "http://localhost:4444/oauth2/token".to_string(),
       auth_endpoint: "http://localhost:4444/oauth2/auth".to_string(),
       userinfo_endpoint: "http://localhost:4444/userinfo".to_string(),
+      confirmation_url: "http://localhost:3000/api/auth/email-confirmation".to_string(),
       scopes: vec!["openid".to_string(), "profile".to_string(), "email".to_string()],
     }
   }
@@ -771,12 +773,14 @@ static CONFIG_BUILDER: Lazy<RwLock<Settings>> = Lazy::new(|| {
       env_mode = "local".to_string();
     }
 
-    let path = format!("/chaty.{}.yaml", env_mode);
+    let path = format!("chaty.{}.yaml", env_mode);
     let mut settings = Settings::default();
 
-    if std::path::Path::new(&path).exists() {
+    if Path::new(&path).exists() {
       let settings_str = fs::read_to_string(path).expect("Should read config file");
       settings = serde_yaml::from_str(&settings_str).expect("Should deserialize config file");
+    } else {
+      println!("warn: the config with path {} , is not exists !", path);
     }
     settings
   })

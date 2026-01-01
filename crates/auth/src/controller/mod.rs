@@ -24,6 +24,7 @@ use reqwest::Client;
 use tonic::service::InterceptorLayer;
 use tonic::transport::Server as TonicServer;
 use tower::ServiceBuilder;
+use tracing::info;
 
 pub struct ControllerArgs {
   pub config: Arc<Settings>,
@@ -79,6 +80,7 @@ impl Controller {
     let url = &self.config.hosts.auth.clone();
 
     let layer = ServiceBuilder::new().layer(InterceptorLayer::new(middleware_context)).into_inner();
+    info!("the auth server is listening on: {}", url);
     TonicServer::builder()
       .layer(layer)
       .add_service(AuthorizationServer::new(self))

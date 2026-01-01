@@ -13,6 +13,7 @@ pub struct WorkerApiArgs {
   pub email_service: Arc<dyn EmailService>,
 }
 
+#[derive(Clone)]
 pub struct WorkerApi {
   pub config: Arc<Settings>,
   pub email_service: Arc<dyn EmailService>,

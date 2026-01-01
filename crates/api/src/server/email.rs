@@ -66,8 +66,8 @@ impl EmailService for SmtpEmailService {
       .subject(subject)
       .multipart(
         MultiPart::alternative()
-          .singlepart(SinglePart::plain(text_body.to_string()))
-          .singlepart(SinglePart::html(html_body.to_string())),
+          .singlepart(SinglePart::html(html_body.to_string()))
+          .singlepart(SinglePart::plain(text_body.to_string())),
       )
       .map_err(|e| Box::new(Error::new(ErrorKind::InvalidInput, e)))?;
 

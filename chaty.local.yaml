@@ -12,13 +12,13 @@ database:
   db_name: chaty
   postgres: postgresql://chaty@localhost:26257/chaty?sslmode=disable
   # Dragonfly connection URL (Redis-compatible cache)
-  dragonfly: "localhost:6379"
+  dragonfly: "redis://0.0.0.0:6379"
 # Kafka/Redpanda message broker configuration
 kafka:
   # List of Kafka brokers
   # Use internal addresses when connecting from Docker containers
   brokers:
-    - "localhost:9092"
+    - "localhost:19092"
   # SASL authentication username (optional)
   username: null
   # SASL authentication password (optional)
@@ -40,11 +40,13 @@ oauth:
   # Admin endpoint of Hydra authorization server
   admin_url: "http://localhost:4445"
   # Client ID for this application
-  client_id: "1f2a1914-1680-4204-8947-7ec4999c2234"
+  client_id: "b9804be6-4531-4a60-9fe0-b519ed7fb55e"
   # Client secret for this application
   client_secret: ""
   # Redirect URI after successful authentication
   redirect_uri: "http://localhost:3000/api/auth/callback"
+  # Email confirmation URL
+  confirmation_url: "http://localhost:3000/auth/email-confirmation"
   # Scopes to request
   scopes:
     - "openid"
@@ -61,7 +63,7 @@ oauth:
 # Remember to change these to https/wss where appropriate in production!
 hosts:
   app: "http://localhost:3000"
-  api: "http://localhost:50050"
+  api: "0.0.0.0:50050"
   ws: "ws://localhost:3002"
   files: "http://localhost:3003"
   gifs: "http://localhost:3004"
@@ -82,12 +84,12 @@ api:
     # Provider: smtp or sendgrid
     provider: "smtp"
     smtp:
-      host: "maildev"
+      host: "localhost"
       username: "smtp"
       password: "smtp"
       from_address: "noreply@chaty.local"
       reply_to: null
-      port: 25
+      port: 1025
       use_tls: false
       use_starttls: false
     sendgrid:
