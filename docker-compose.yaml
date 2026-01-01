@@ -23,11 +23,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 45s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #       cpus: "1.0"
 
   # ============================================================================
   # Database - CockroachDB

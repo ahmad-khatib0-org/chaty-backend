@@ -1,19 +1,11 @@
 include .env
 
-.PHONY: 
-	help 
-	confirm 
-	db/migrations/new 
-	db/migrations/force 
-	db/migrations/up 
-	db/migrations/up_1 
-	db/migrations/down 
-	db/migrations/down_1
-	run
+.PHONY: help confirm \
+	db/migrations/sql/new db/migrations/sql/up db/migrations/sql/down db/migrations/sql/force \
+	db/migrations/nosql/new db/migrations/nosql/up db/migrations/nosql/down db/migrations/nosql/force
 
-#
 # ==================================================================================== #
-#   HELPERS
+# HELPERS
 # ==================================================================================== #
 
 ## help: print this help message
@@ -24,36 +16,54 @@ help:
 confirm:
 	@echo -n 'Are you sure? [y/N] ' && read ans && [ $${ans:-N} = y ]
 
-## db/migrations/new name=$1: create a new database migration
-db/migrations/new: 
-	@echo "creating migration files for ${name}..."
-	# migrate create -ext=.sql -format="2006-01-02_15-04-05" -seq -dir=./migrations ${name}
-	@migrate create -seq -ext=.sql -dir=./migrations ${name}
+# ==================================================================================== #
+# SQL MIGRATIONS (PostgreSQL)
+# ==================================================================================== #
 
-## db/migrations/:force force fixing the migration version
-db/migrations/force: confirm
-	@echo "Force fixing the failed migration number: ${force}"
-	@migrate -path ./migrations -database ${DB_DSN} force ${force}
+## db/migrations/sql/new name=$1: create a new SQL migration
+db/migrations/sql/new:
+	@echo "Creating SQL migration files for ${name}..."
+	@migrate create -seq -ext=.sql -dir=./migrations/sql ${name}
 
-## db/migrations/up: apply all up database migrations
-db/migrations/up: confirm
-	@echo "Running up migrations..."
-	@migrate -path ./migrations -database ${DB_DSN} -verbose up
+## db/migrations/sql/up: apply all up SQL migrations
+db/migrations/sql/up: confirm
+	@echo "Running UP SQL migrations..."
+	@migrate -path ./migrations/sql -database ${DB_DSN_SQL} -verbose up
 
-## db/migrations/up_1: apply all up before the last migration
-db/migrations/up_1: confirm
-	@echo "Running up before last migrations..."
-	@migrate -path ./migrations -database ${DB_DSN} -verbose up 1
+## db/migrations/sql/down: apply all down SQL migrations
+db/migrations/sql/down: confirm
+	@echo "Running DOWN SQL migrations..."
+	@migrate -path ./migrations/sql -database ${DB_DSN_SQL} -verbose down
 
-## db/migrations/down: apply all down database migrations
-db/migrations/down: confirm
-	@echo "Running down migrations..."
-	@migrate -path ./migrations -database ${DB_DSN} -verbose down
+## db/migrations/sql/force force=$1: force fixing the SQL migration version
+db/migrations/sql/force: confirm
+	@echo "Force fixing SQL migration to version ${force}"
+	@migrate -path ./migrations/sql -database ${DB_DSN_SQL} force ${force}
 
-## db/migrations/down_1: apply all down before the last migrations
-db/migrations/down_1: confirm
-	@echo "Running down before last migrations..."
-	@migrate -path ./migrations -database ${DB_DSN} -verbose down 1
+
+# ==================================================================================== #
+# NOSQL MIGRATIONS (ScyllaDB)
+# ==================================================================================== #
+
+## db/migrations/nosql/new name=$1: create a new NoSQL (CQL) migration
+db/migrations/nosql/new:
+	@echo "Creating NoSQL migration files for ${name}..."
+	@migrate create -seq -ext=.cql -dir=./migrations/nosql ${name}
+
+## db/migrations/nosql/up: apply all up NoSQL migrations
+db/migrations/nosql/up: confirm
+	@echo "Running UP NoSQL migrations..."
+	@migrate -path ./migrations/nosql -database ${DB_DSN_NOSQL} -verbose up
+
+## db/migrations/nosql/down: apply all down NoSQL migrations
+db/migrations/nosql/down: confirm
+	@echo "Running DOWN NoSQL migrations..."
+	@migrate -path ./migrations/nosql -database ${DB_DSN_NOSQL} -verbose down
+
+## db/migrations/nosql/force force=$1: force fixing the NoSQL migration version
+db/migrations/nosql/force: confirm
+	@echo "Force fixing NoSQL migration to version ${force}"
+	@migrate -path ./migrations/nosql -database ${DB_DSN_NOSQL} force ${force}
 
 YAML_FILE := chaty.local.yaml
 ENV_FILE := $$HOME/Downloads/personal/portfolio/chaty/chaty-web/packages/chaty-app/.env.development
@@ -104,5 +114,5 @@ run:
 	}
 	
 	./scripts/init_database.sh
-	$(MAKE) db/migrations/up
+	$(MAKE) db/migrations/sql/up
 
