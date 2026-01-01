@@ -1,4 +1,5 @@
 mod init;
+pub mod metrics;
 
 use std::{io::ErrorKind, sync::Arc};
 
@@ -13,8 +14,12 @@ use tokio::{
   spawn,
   sync::mpsc::{channel, Receiver, Sender},
 };
+use tracing::error;
 
-use crate::controller::{otel::init_otel, Controller, ControllerArgs};
+use crate::{
+  controller::{Controller, ControllerArgs},
+  server::metrics::{MetricsCollector, MetricsCollectorArgs},
+};
 
 #[derive(Clone)]
 pub struct Server {
@@ -22,14 +27,23 @@ pub struct Server {
   pub(crate) config: Arc<Settings>,
   pub(crate) redis: Option<Arc<RedisPool>>,
   pub(crate) sql_db: Option<Arc<DatabaseSql>>,
+  pub(super) metrics: Option<Arc<MetricsCollector>>,
 }
 
 impl Server {
   pub async fn new() -> Result<Self, BoxedErr> {
     let (tx, rx) = channel::<InternalError>(100);
 
-    let srv =
-      Server { errors_send: tx, config: Arc::new(Settings::default()), redis: None, sql_db: None };
+    let config = config().await;
+
+    let srv = Server {
+      errors_send: tx,
+      config: Arc::new(config),
+      redis: None,
+      sql_db: None,
+      metrics: None,
+    };
+
     srv.init_logger();
 
     let srv_clone = srv.clone();
@@ -47,7 +61,8 @@ impl Server {
       path: "auth.server.run".into(),
     };
 
-    let config = config().await;
+    let config = self.config.clone();
+
     let sql_db =
       DatabaseInfoSql::Postgres { dsn: config.database.postgres.clone() }.connect().await.map_err(
         |err| ie(&err.clone(), Box::new(std::io::Error::new(ErrorKind::NotConnected, err))),
@@ -61,23 +76,26 @@ impl Server {
         )
       })?;
 
-    self.config = Arc::new(config);
     self.redis = Some(Arc::new(self.init_redis().await?));
     self.sql_db = Some(Arc::new(sql_db));
 
-    let (_registry, metrics) = init_otel().map_err(|err| {
-      ie(
-        "failed to initialize OTEL",
-        Box::new(std::io::Error::new(ErrorKind::Other, format!("{:?}", err))),
-      )
-    })?;
+    // Initialize observability
+    self.metrics =
+      Some(Arc::new(MetricsCollector::new(MetricsCollectorArgs { config: config.clone() })?));
+
+    let metrics_clone = self.metrics.clone();
+    spawn(async move {
+      if let Err(e) = metrics_clone.unwrap().run().await {
+        error!("Metrics server failed: {:?}", e);
+      }
+    });
 
     let controller_args = {
       ControllerArgs {
         config: Arc::new(self.config.as_ref().clone()),
         redis_con: self.redis.as_ref().unwrap().clone(),
         sql_db: self.sql_db.as_ref().unwrap().clone(),
-        metrics,
+        metrics: self.metrics.as_ref().unwrap().clone(),
       }
     };
 

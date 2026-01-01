@@ -56,7 +56,7 @@ fn load_translations() -> Result<HashMap<String, HashMap<String, String>>, Trans
   let mut result = HashMap::new();
 
   for entry in fs::read_dir(I18N_DIR)? {
-    let entry = entry?; // This ? also works now
+    let entry = entry?;
     let entry_path = entry.path();
 
     if entry_path.extension().and_then(|ext| ext.to_str()) == Some("json") {
@@ -69,8 +69,6 @@ fn load_translations() -> Result<HashMap<String, HashMap<String, String>>, Trans
       let content = fs::read_to_string(&entry_path)?;
 
       let translations: Vec<TranslationElement> = serde_json::from_str(&content)?;
-      println!("the file content {:?}", translations);
-
       let mut lang_map = HashMap::new();
       for element in translations {
         lang_map.insert(element.id.clone(), element.tr.clone());

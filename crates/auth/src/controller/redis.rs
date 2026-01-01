@@ -7,8 +7,8 @@ use tonic::async_trait;
 use tracing::instrument;
 
 use crate::models::network::CachedTokenStatus;
+use crate::server::metrics::MetricsCollector;
 
-use super::metrics::MetricsCollector;
 use super::token::{check_token, get_token, mark_checked_ok, revoke_token, set_token};
 
 /// Represents Redis check results
@@ -36,7 +36,7 @@ pub trait RedisClient: Send + Sync {
 #[derive(Debug, Clone)]
 pub struct DefaultRedisClient {
   pub redis: Arc<Pool>,
-  pub metrics: MetricsCollector,
+  pub metrics: Arc<MetricsCollector>,
 }
 
 impl DefaultRedisClient {

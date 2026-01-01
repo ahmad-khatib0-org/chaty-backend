@@ -80,6 +80,9 @@ hosts:
   livekit: {}
   # OpenTelemetry Collector (for observability)
   otel_collector: "http://otel-collector:4317"
+  # Metrics endpoints for services
+  api_metrics: "0.0.0.0:8888"
+  auth_metrics: "0.0.0.0:8889"
 
 # API server configuration
 api:

@@ -40,7 +40,7 @@ oauth:
   # Admin endpoint of Hydra authorization server
   admin_url: "http://localhost:4445"
   # Client ID for this application
-  client_id: "b9804be6-4531-4a60-9fe0-b519ed7fb55e"
+  client_id: "8ac2253d-a000-49a3-bc0f-dabbadea898a"
   # Client secret for this application
   client_secret: ""
   # Redirect URI after successful authentication
@@ -73,6 +73,9 @@ hosts:
   livekit: {}
   # OpenTelemetry Collector (for observability)
   otel_collector: "http://localhost:4317"
+  # Metrics endpoints for services
+  api_metrics: "0.0.0.0:8888"
+  auth_metrics: "0.0.0.0:8889"
 # API server configuration
 api:
   # User registration settings

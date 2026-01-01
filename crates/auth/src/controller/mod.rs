@@ -1,13 +1,10 @@
 mod hydra;
-mod metrics;
 mod redis;
 mod response;
 mod router;
 mod routes;
 mod token;
 mod user_cache;
-
-pub mod otel;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -26,11 +23,13 @@ use tonic::transport::Server as TonicServer;
 use tower::ServiceBuilder;
 use tracing::info;
 
+use crate::server::metrics::MetricsCollector;
+
 pub struct ControllerArgs {
   pub config: Arc<Settings>,
   pub redis_con: Arc<RedisPool>,
   pub sql_db: Arc<DatabaseSql>,
-  pub metrics: metrics::MetricsCollector,
+  pub metrics: Arc<MetricsCollector>,
 }
 
 pub struct Controller {
@@ -39,7 +38,7 @@ pub struct Controller {
   pub redis: DefaultRedisClient,
   pub redis_con: Arc<RedisPool>,
   pub(super) store: Arc<DatabaseSql>,
-  pub metrics: metrics::MetricsCollector,
+  pub metrics: Arc<MetricsCollector>,
   cached_config: CachedConfig,
 }
 

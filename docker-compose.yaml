@@ -384,7 +384,7 @@ services:
     ports:
       - "4317:4317"
       - "4318:4318"
-      - "8888:8888"
+      - "8800:8888"
       - "13133:13133"
     volumes:
       - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml

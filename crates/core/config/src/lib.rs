@@ -115,6 +115,8 @@ pub struct Hosts {
   pub auth: String,
   pub livekit: HashMap<String, String>,
   pub otel_collector: String,
+  pub api_metrics: String,
+  pub auth_metrics: String,
 }
 
 impl Default for Hosts {
@@ -128,6 +130,8 @@ impl Default for Hosts {
       auth: "0.0.0.0:50051".to_string(),
       livekit: HashMap::new(),
       otel_collector: "http://0.0.0.0:4317".to_string(),
+      api_metrics: "0.0.0.0:8888".to_string(),
+      auth_metrics: "0.0.0.0:8889".to_string(),
     }
   }
 }

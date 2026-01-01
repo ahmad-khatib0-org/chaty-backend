@@ -5,20 +5,18 @@ pub mod observability;
 use std::io::ErrorKind;
 use std::sync::Arc;
 
+use crate::controller::{ApiController, ApiControllerArgs};
+use crate::email::{create_email_service, EmailService};
+use crate::observability::{MetricsCollector, MetricsCollectorArgs};
+use crate::worker::{WorkerApi, WorkerApiArgs};
 use chaty_config::{config, Settings};
 use chaty_database::{DatabaseInfoNoSql, DatabaseInfoSql, DatabaseNoSql, DatabaseSql};
 use chaty_result::errors::{BoxedErr, ErrorType, SimpleError};
 use chaty_result::translations_init;
-use prometheus::Registry;
 use tokio::spawn;
 use tracing::error;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
-
-use crate::controller::{ApiController, ApiControllerArgs};
-use crate::email::{create_email_service, EmailService};
-use crate::observability::MetricsCollector;
-use crate::worker::{WorkerApi, WorkerApiArgs};
 
 use broker::BrokerApi;
 
@@ -28,7 +26,6 @@ pub struct ApiServer {
   pub(super) config: Arc<Settings>,
   pub(super) broker: Arc<BrokerApi>,
   pub(super) email_service: Arc<dyn EmailService>,
-  pub(super) metrics_registry: Arc<Registry>,
   pub(super) metrics: Arc<MetricsCollector>,
   pub(super) worker: Arc<WorkerApi>,
 }
@@ -46,7 +43,7 @@ impl ApiServer {
       .map_err(|err| se(Box::new(err.clone()), ErrorType::InternalError, &err.to_string()))?;
 
     // Initialize observability
-    let (metrics_registry, metrics) = observability::init_otel()?;
+    let metrics = MetricsCollector::new(MetricsCollectorArgs { config: Arc::new(config.clone()) })?;
 
     let nosql_db = DatabaseInfoNoSql::ScyllaDb {
       uri: config.database.scylladb.clone(),
@@ -87,7 +84,6 @@ impl ApiServer {
       broker: Arc::new(broker),
       worker: Arc::new(worker),
       email_service,
-      metrics_registry: Arc::new(metrics_registry),
       metrics: Arc::new(metrics),
     };
 
@@ -108,6 +104,13 @@ impl ApiServer {
     spawn(async move {
       if let Err(e) = worker_clone.start().await {
         error!("Worker loop crashed: {:?}", e);
+      }
+    });
+
+    let metrics_clone = self.metrics.clone();
+    spawn(async move {
+      if let Err(e) = metrics_clone.run().await {
+        error!("Metrics server failed: {:?}", e);
       }
     });
 
