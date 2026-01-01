@@ -2,8 +2,8 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: 'dev'
-    environment: 'development'
+    cluster: "dev"
+    environment: "development"
 
 alerting:
   alertmanagers:
@@ -11,55 +11,57 @@ alerting:
         - targets: []
 
 rule_files:
-  - '/etc/prometheus/rules/*.yml'
+  - "/etc/prometheus/rules/*.yml"
 
 scrape_configs:
   # API Service Metrics
-  - job_name: 'api-metrics'
+  - job_name: "api-metrics"
     static_configs:
-      - targets: ['localhost:8888']
-    metrics_path: '/metrics'
+      - targets: ["host.docker.internal:8888"]
+    metrics_path: "/metrics"
     scrape_interval: 15s
+    fallback_scrape_protocol: "PrometheusText0.0.4"
 
   # Auth Service Metrics
-  - job_name: 'auth-metrics'
+  - job_name: "auth-metrics"
     static_configs:
-      - targets: ['localhost:8889']
-    metrics_path: '/metrics'
+      - targets: ["host.docker.internal:8889"]
+    metrics_path: "/metrics"
     scrape_interval: 15s
+    fallback_scrape_protocol: "PrometheusText0.0.4"
 
   # OpenTelemetry Collector
-  - job_name: 'otel-collector'
+  - job_name: "otel-collector"
     static_configs:
-      - targets: ['otel-collector:8889']
-    metrics_path: '/metrics'
+      - targets: ["otel-collector:8889"]
+    metrics_path: "/metrics"
     scrape_interval: 10s
 
   # CockroachDB
-  - job_name: 'cockroachdb'
+  - job_name: "cockroachdb"
     static_configs:
-      - targets: ['cockroachdb:8080']
-    metrics_path: '/_status/vars'
+      - targets: ["cockroachdb:8080"]
+    metrics_path: "/_status/vars"
 
   # Dragonfly (Redis)
-  - job_name: 'dragonfly'
+  - job_name: "dragonfly"
     static_configs:
-      - targets: ['dragonfly:6379']
-    metrics_path: '/metrics'
+      - targets: ["dragonfly:6379"]
+    metrics_path: "/metrics"
 
   # Redpanda/Kafka
-  - job_name: 'redpanda'
+  - job_name: "redpanda"
     static_configs:
-      - targets: ['redpanda:9644']
-    metrics_path: '/metrics'
+      - targets: ["redpanda:9644"]
+    metrics_path: "/metrics"
 
   # MinIO
-  - job_name: 'minio'
+  - job_name: "minio"
     static_configs:
-      - targets: ['minio:9000']
-    metrics_path: '/minio/v2/metrics/cluster'
+      - targets: ["minio:9000"]
+    metrics_path: "/minio/v2/metrics/cluster"
 
   # Prometheus self-monitoring
-  - job_name: 'prometheus'
+  - job_name: "prometheus"
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ["localhost:9090"]

@@ -48,10 +48,10 @@ impl MetricsCollector {
     let registry = Registry::new();
 
     // Create Prometheus exporter
-    let _prometheus_exporter = opentelemetry_prometheus::exporter()
-      .with_registry(registry.clone())
-      .build()
-      .map_err(|err| ie("failed to initialize prometheus exporter", Box::new(err)))?;
+    // let _prometheus_exporter = opentelemetry_prometheus::exporter()
+    //   .with_registry(registry.clone())
+    //   .build()
+    //   .map_err(|err| ie("failed to initialize prometheus exporter", Box::new(err)))?;
 
     // --- Token Metrics ---
     let token_checks_total = IntCounter::new("auth_token_checks_total", "Total token checks")
@@ -203,7 +203,12 @@ impl MetricsCollector {
                   .map_err(|e| Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)))
                   .unwrap_or_default();
 
-                Ok::<_, Infallible>(Response::new(Full::new(Bytes::from(body))))
+                Ok::<_, Infallible>(
+                  Response::builder()
+                    .header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+                    .body(Full::new(Bytes::from(body)))
+                    .unwrap(),
+                )
               }
               "/health" => Ok(Response::new(Full::new(Bytes::from_static(b"OK")))),
               _ => Ok(
