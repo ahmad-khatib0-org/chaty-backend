@@ -11,6 +11,7 @@ use tracing_subscriber::layer::SubscriberExt;
 
 #[cfg(feature = "sentry")]
 pub use sentry::{capture_error, capture_message, Level};
+
 #[cfg(feature = "anyhow")]
 pub use sentry_anyhow::capture_anyhow;
 

@@ -76,6 +76,8 @@ hosts:
   # Public urls for livekit nodes
   # Each entry here should have a corresponding entry under `api.livekit.nodes`
   livekit: {}
+  # OpenTelemetry Collector (for observability)
+  otel_collector: "http://otel-collector:4317"
 
 # API server configuration
 api:

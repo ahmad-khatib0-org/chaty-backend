@@ -1,0 +1,79 @@
+groups:
+  - name: grpc_service_alerts
+    interval: 30s
+    rules:
+      # High error rate alert
+      - alert: HighGRPCErrorRate
+        expr: |
+          (
+            sum(rate(grpc_server_handled_total{grpc_code!="0"}[5m])) by (grpc_service)
+            /
+            sum(rate(grpc_server_handled_total[5m])) by (grpc_service)
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High gRPC error rate on {{ $labels.grpc_service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for service {{ $labels.grpc_service }}"
+
+      # Service unavailable
+      - alert: ServiceUnavailable
+        expr: up{job=~".*-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been unavailable for more than 1 minute"
+
+      # High latency
+      - alert: HighGRPCLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(grpc_server_handling_seconds_bucket[5m])) by (grpc_service, le))
+          > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 latency on {{ $labels.grpc_service }}"
+          description: "P95 latency is {{ $value }}s for service {{ $labels.grpc_service }}"
+
+  - name: database_alerts
+    interval: 30s
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          cockroach_sql_open_connections
+          /
+          cockroach_sql_conn_limit > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CockroachDB connection pool {{ $value | humanizePercentage }} exhausted"
+          description: "Connection pool utilization is at {{ $value | humanizePercentage }}"
+
+  - name: cache_alerts
+    interval: 30s
+    rules:
+      - alert: DragonflyDown
+        expr: up{job="dragonfly"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dragonfly cache is down"
+          description: "Dragonfly cache has been unavailable for more than 1 minute"
+
+  - name: message_broker_alerts
+    interval: 30s
+    rules:
+      - alert: RedpandaDown
+        expr: up{job="redpanda"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redpanda is down"
+          description: "Redpanda has been unavailable for more than 1 minute"

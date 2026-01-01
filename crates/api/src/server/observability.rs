@@ -80,7 +80,7 @@ impl MetricsCollector {
       .map_err(|e| e.to_string())?;
 
     let broker_operation_duration_seconds = HistogramVec::new(
-      HistogramOpts::new("api_broker_operation_duration_seconds ", "Broker operation duration"),
+      HistogramOpts::new("api_broker_operation_duration_seconds", "Broker operation duration"),
       &["operation"],
     )
     .map_err(|e| e.to_string())?;
@@ -171,18 +171,6 @@ pub fn init_otel() -> Result<(Registry, MetricsCollector), BoxedErr> {
   let metrics = MetricsCollector::new(&registry).map_err(|e| {
     ie("failed to initialize metrics collector", Box::new(Error::new(ErrorKind::Other, e)))
   })?;
-
-  // Set up environment filter for logs
-  use tracing_subscriber::layer::SubscriberExt;
-
-  let env_filter = tracing_subscriber::filter::EnvFilter::try_from_default_env()
-    .unwrap_or_else(|_| tracing_subscriber::filter::EnvFilter::new("info"));
-
-  // Initialize tracing subscriber for structured logging
-  let subscriber =
-    tracing_subscriber::registry().with(env_filter).with(tracing_subscriber::fmt::layer());
-
-  let _ = tracing::subscriber::set_default(subscriber);
 
   Ok((registry, metrics))
 }

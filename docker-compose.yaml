@@ -4,31 +4,40 @@ services:
   # Database - ScyllaDB (NoSQL)
   # ============================================================================
   scylladb:
-    image: scylladb/scylla:5.4.0 # Use a specific stable version
+    image: scylladb/scylla:5.4.0
     container_name: scylladb
     restart: always
     networks:
       - chaty-dev
     ports:
-      - "9042:9042" # CQL native protocol
-      - "9160:9160" # Thrift protocol (legacy)
-      - "10000:10000" # ScyllaDB Manager agent
-      - "19042:19042" # JMX
+      - "9042:9042"
+      - "9160:9160"
+      - "10000:10000"
+      - "19042:19042"
     volumes:
       - scylladb_data:/var/lib/scylla
-    command: --smp 1 --memory 2G
+    command: --smp 1 --memory 750M
     healthcheck:
       test: ["CMD", "cqlsh", "-e", "DESCRIBE keyspaces"]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
 
+  # ============================================================================
+  # Database - CockroachDB
+  # ============================================================================
   cockroachdb:
     image: cockroachdb/cockroach:latest
     container_name: cockroachdb
     restart: always
-    networks: ["chaty-dev"]
+    networks:
+      - chaty-dev
     command: start-single-node --insecure
     ports:
       - "26257:26257"
@@ -46,9 +55,14 @@ services:
           memory: 512M
           cpus: "0.5"
 
+  # ============================================================================
+  # API Gateway - Envoy Proxy
+  # ============================================================================
   chaty_proxy:
     image: envoyproxy/envoy:v1.35.0
-    networks: ["chaty-dev"]
+    container_name: chaty-proxy
+    networks:
+      - chaty-dev
     restart: always
     volumes:
       - ./config/envoy.yml:/etc/envoy/envoy.yaml
@@ -73,7 +87,7 @@ services:
           cpus: "0.3"
 
   # ============================================================================
-  # Cache - Dragonfly (Redis-compatible, faster)
+  # Cache - Dragonfly (Redis-compatible)
   # ============================================================================
   dragonfly:
     image: "docker.dragonflydb.io/dragonflydb/dragonfly"
@@ -117,7 +131,7 @@ services:
       - start
       - --mode dev-container
       - --smp 1
-      - --memory 2G
+      - --memory 1G
       - --reserve-memory 0M
       - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
       - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
@@ -126,12 +140,12 @@ services:
         ["CMD-SHELL", "curl -f http://localhost:9644/v1/node_config || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 15 # Increased retries to handle the slow ScyllaDB startup
-      start_period: 90s # Increased to 90s to give the cluster time to initialize
+      retries: 15
+      start_period: 90s
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 2G
           cpus: "1.0"
 
   # ============================================================================
@@ -145,8 +159,8 @@ services:
     networks:
       - chaty-dev
     ports:
-      - "9000:9000" # API port
-      - "9001:9001" # Console port
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - minio_data:/data
     environment:
@@ -203,8 +217,8 @@ services:
     networks:
       - chaty-dev
     ports:
-      - "1025:25" # SMTP port
-      - "8025:8080" # Web UI
+      - "1025:25"
+      - "8025:8080"
     environment:
       MAILDEV_SMTP_PORT: 25
       MAILDEV_WEB_PORT: 8080
@@ -278,8 +292,8 @@ services:
       hydra-migrate:
         condition: service_completed_successfully
     ports:
-      - "4444:4444" # Public endpoint
-      - "4445:4445" # Admin endpoint
+      - "4444:4444"
+      - "4445:4445"
     environment:
       DSN: postgres://hydra:hydra-password@hydra-db:5432/hydra?sslmode=disable
       HYDRA_SYSTEM_SECRET: this_needs_to_be_32_bytes_minimum_secret_key_12345
@@ -323,14 +337,202 @@ services:
           memory: 256M
           cpus: "0.3"
 
+  # ============================================================================
+  # Observability Stack - Jaeger (must come before otel-collector)
+  # ============================================================================
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    restart: always
+    networks:
+      - chaty-dev
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=true
+    volumes:
+      - jaeger_data:/badger
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:14268"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  # ============================================================================
+  # Observability Stack - OpenTelemetry Collector
+  # ============================================================================
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib
+    container_name: otel-collector
+    restart: always
+    networks:
+      - chaty-dev
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+      - "13133:13133"
+    volumes:
+      - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    depends_on:
+      jaeger:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:13133"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+          cpus: "0.5"
+
+  # ============================================================================
+  # Observability Stack - Prometheus
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    networks:
+      - chaty-dev
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus-rules.yaml:/etc/prometheus/rules/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+          cpus: "0.5"
+
+  # ============================================================================
+  # Observability Stack - Loki
+  # ============================================================================
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: always
+    networks:
+      - chaty-dev
+    ports:
+      - "3101:3101"
+    volumes:
+      - ./config/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3101/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.3"
+
+  # ============================================================================
+  # Observability Stack - Promtail
+  # ============================================================================
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: always
+    networks:
+      - chaty-dev
+    volumes:
+      - ./config/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      loki:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.2"
+
+  # ============================================================================
+  # Observability Stack - Grafana
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    networks:
+      - chaty-dev
+    ports:
+      - "3100:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - ./config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - ./config/grafana-provisioning-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      loki:
+        condition: service_started
+    healthcheck:
+      test:
+        ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.3"
+
 networks:
   chaty-dev:
     driver: bridge
 
 volumes:
-  cockroach_data:
   scylladb_data:
+  cockroach_data:
   dragonfly_data:
   redpanda_data:
   minio_data:
   hydra_db_data:
+  prometheus_data:
+  jaeger_data:
+  loki_data:
+  grafana_data:
