@@ -114,5 +114,6 @@ run:
 	}
 	
 	./scripts/init_database.sh
+	./scripts/init_broker.sh
 	$(MAKE) db/migrations/sql/up
 
