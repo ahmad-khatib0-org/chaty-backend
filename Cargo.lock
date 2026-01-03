@@ -560,6 +560,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "ulid",
+ "urlencoding",
  "validator",
 ]
 
@@ -632,9 +633,9 @@ dependencies = [
 
 [[package]]
 name = "chaty-proto"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ade688d1e53f78af8d9fd03ba8bfe03923c51c0612d57ae48f35d8b75e5957a"
+checksum = "cf247ccd91c4ca03a02b6bed10adb2c9cb963c41e0b4e363769929ed1f61c065"
 dependencies = [
  "prost 0.13.5",
  "prost-types",
@@ -4602,6 +4603,12 @@ dependencies = [
  "percent-encoding",
  "serde",
 ]
+
+[[package]]
+name = "urlencoding"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 
 [[package]]
 name = "utf-8"

@@ -13,6 +13,7 @@ pub type AnyMap = HashMap<String, Value>;
 pub enum EventName {
   UsersCreate,
   UsersLogin,
+  UsersEmailConfirmation,
 }
 
 #[derive(Serialize, Deserialize, Debug, Display, Clone, PartialEq, Eq)]
@@ -20,6 +21,7 @@ pub enum EventName {
 pub enum EventParameterKey {
   UsersCreate,
   UsersLogin,
+  UserId,
 }
 
 impl EventParameterKey {
@@ -27,6 +29,7 @@ impl EventParameterKey {
     match self {
       Self::UsersCreate => Cow::Borrowed("users_create"),
       Self::UsersLogin => Cow::Borrowed("users_login"),
+      Self::UserId => Cow::Borrowed("user_id"),
     }
   }
 }

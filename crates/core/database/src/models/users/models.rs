@@ -37,6 +37,14 @@ impl TokenType {
       TokenType::PasswordReset => "password_reset",
     }
   }
+
+  pub fn from_string(s: &str) -> Self {
+    match s {
+      "email_confirmation" => TokenType::EmailVerification,
+      "password_reset" => TokenType::PasswordReset,
+      _ => TokenType::EmailVerification, // Default to EmailVerification
+    }
+  }
 }
 
 impl EnumHelpers for UserStatus {

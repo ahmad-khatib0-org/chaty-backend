@@ -250,5 +250,21 @@
   {
     "id": "oauth.login_code.invalid",
     "tr": "The login token code is missing from the URL, make sure to not manipulate the Link, Please Try again, if issue presists, Please contact support."
+  },
+  {
+    "id": "users.email_confirmation.success",
+    "tr": "Your email has been confirmed successfully. You can now log in to your account."
+  },
+  {
+    "id": "users.email_confirmation.already_confirmed",
+    "tr": "Your email has already been confirmed."
+  },
+  {
+    "id": "users.email_confirmation.token_expired",
+    "tr": "The confirmation link has expired. Please request a new confirmation email."
+  },
+  {
+    "id": "users.email_confirmation.token_invalid",
+    "tr": "The confirmation link is invalid. Please request a new confirmation email."
   }
 ]

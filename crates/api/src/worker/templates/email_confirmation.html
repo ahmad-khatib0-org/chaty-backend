@@ -59,9 +59,11 @@
     <div class="content">
       <p>{{ email_confirmation_greeting }}</p>
       <p>{{ email_confirmation_intro }}</p>
-      <a href="{{ confirmation_url }}" class="button">{{ email_confirmation_button_text }}</a>
+      <a href="{{ confirmation_url|safe }}" class="button">
+        {{ email_confirmation_button_text }}
+      </a>
       <p>{{ email_confirmation_alt_text }}</p>
-      <p>{{ confirmation_url }}</p>
+      <p>{{ confirmation_url|safe }}</p>
       <p>{{ email_confirmation_expiry_notice }}</p>
       <p>{{ email_confirmation_not_requested }}</p>
       <p>{{ email_confirmation_signature }}</p>

@@ -28,6 +28,8 @@ pub struct MetricsCollector {
   pub users_create_failed: Counter<u64>,
   pub users_login_total: Counter<u64>,
   pub users_login_failed: Counter<u64>,
+  pub users_email_confirmation_total: Counter<u64>,
+  pub users_email_confirmation_failed: Counter<u64>,
   pub users_get_total: Counter<u64>,
   pub users_get_failed: Counter<u64>,
   pub db_operations_total: Counter<u64>,
@@ -50,6 +52,8 @@ impl Clone for MetricsCollector {
       users_create_failed: self.users_create_failed.clone(),
       users_login_total: self.users_login_total.clone(),
       users_login_failed: self.users_login_failed.clone(),
+      users_email_confirmation_total: self.users_email_confirmation_total.clone(),
+      users_email_confirmation_failed: self.users_email_confirmation_failed.clone(),
       users_get_total: self.users_get_total.clone(),
       users_get_failed: self.users_get_failed.clone(),
       db_operations_total: self.db_operations_total.clone(),
@@ -113,6 +117,16 @@ impl MetricsCollector {
       .with_description("Total failed user logins")
       .build();
 
+    let users_email_confirmation_total = meter
+      .u64_counter("api_users_email_confirmation")
+      .with_description("Total email confirmation requests")
+      .build();
+
+    let users_email_confirmation_failed = meter
+      .u64_counter("api_users_email_confirmation_failed")
+      .with_description("Total failed email confirmation requests")
+      .build();
+
     let users_get_total =
       meter.u64_counter("api_users_get").with_description("Total user retrieval requests").build();
 
@@ -165,6 +179,8 @@ impl MetricsCollector {
       users_create_failed,
       users_login_total,
       users_login_failed,
+      users_email_confirmation_total,
+      users_email_confirmation_failed,
       users_get_total,
       users_get_failed,
       db_operations_total,
@@ -253,6 +269,15 @@ impl MetricsCollector {
   pub fn record_users_login_failure(&self) {
     self.users_login_total.add(1, &[]);
     self.users_login_failed.add(1, &[]);
+  }
+
+  pub fn record_users_email_confirmation_success(&self) {
+    self.users_email_confirmation_total.add(1, &[]);
+  }
+
+  pub fn record_users_email_confirmation_failure(&self) {
+    self.users_email_confirmation_total.add(1, &[]);
+    self.users_email_confirmation_failed.add(1, &[]);
   }
 
   pub fn record_db_operation(&self, operation: &str) {

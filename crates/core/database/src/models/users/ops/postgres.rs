@@ -7,7 +7,7 @@ use chaty_result::{
   errors::{DBError, ErrorType},
 };
 
-use crate::{CachedUserData, EnumHelpers, PostgresDb, Token, UsersRepository};
+use crate::{CachedUserData, EnumHelpers, PostgresDb, Token, TokenType, UsersRepository};
 
 #[async_trait()]
 impl UsersRepository for PostgresDb {
@@ -157,6 +157,58 @@ impl UsersRepository for PostgresDb {
       }
       Err(err) => {
         let msg = format!("failed to fetch user auth data: {}", err);
+        Err(DBError { err_type: ErrorType::DatabaseError, msg, path, err: Box::new(err) })
+      }
+    }
+  }
+
+  async fn tokens_get_by_token(&self, _ctx: Arc<Context>, token: &str) -> Result<Token, DBError> {
+    let path = "database.users.tokens_get_by_token".to_string();
+
+    let row: Result<_, _> = sqlx::query!(
+      r#"
+        SELECT id, user_id, token, type, used, created_at, expires_at
+        FROM tokens
+        WHERE token = $1
+      "#,
+      token,
+    )
+    .fetch_optional(self.db())
+    .await;
+
+    match row {
+      Ok(Some(r)) => Ok(Token {
+        id: r.id,
+        user_id: r.user_id,
+        token: r.token,
+        r#type: TokenType::from_string(&r.r#type),
+        used: r.used,
+        created_at: r.created_at,
+        expires_at: r.expires_at,
+      }),
+      Ok(None) => {
+        let msg = "token not found".to_string();
+        Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+      }
+      Err(err) => {
+        let msg = format!("failed to fetch token: {}", err);
+        Err(DBError { err_type: ErrorType::DatabaseError, msg, path, err: Box::new(err) })
+      }
+    }
+  }
+
+  async fn tokens_mark_as_used(&self, _ctx: Arc<Context>, token_id: &str) -> Result<(), DBError> {
+    let path = "database.users.tokens_mark_as_used".to_string();
+
+    let result: Result<_, _> = sqlx::query("UPDATE tokens SET used = true WHERE id = $1")
+      .bind(token_id)
+      .execute(self.db())
+      .await;
+
+    match result {
+      Ok(_) => Ok(()),
+      Err(err) => {
+        let msg = format!("failed to mark token as used: {}", err);
         Err(DBError { err_type: ErrorType::DatabaseError, msg, path, err: Box::new(err) })
       }
     }

@@ -58,4 +58,31 @@ impl UsersRepository for ReferenceSqlDb {
       }
     }
   }
+
+  async fn tokens_get_by_token(&self, _ctx: Arc<Context>, token: &str) -> Result<Token, DBError> {
+    let tokens = self.tokens.lock().await;
+    let path = "database.users.tokens_get_by_token".to_string();
+    let token_obj = tokens.iter().find(|t| t.1.token == token);
+
+    match token_obj {
+      Some(token_obj) => Ok(token_obj.1.clone()),
+      None => {
+        let msg = "token not found".to_string();
+        Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+      }
+    }
+  }
+
+  async fn tokens_mark_as_used(&self, _ctx: Arc<Context>, token_id: &str) -> Result<(), DBError> {
+    let mut tokens = self.tokens.lock().await;
+    let path = "database.users.tokens_mark_as_used".to_string();
+
+    if let Some(token) = tokens.get_mut(token_id) {
+      token.used = true;
+      Ok(())
+    } else {
+      let msg = "token not found".to_string();
+      Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+    }
+  }
 }

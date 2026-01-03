@@ -25,4 +25,8 @@ pub trait UsersRepository: Sync + Send {
     user_id: &str,
   ) -> Result<CachedUserData, DBError>;
   async fn tokens_create(&self, ctx: Arc<Context>, token: &Token) -> Result<(), DBError>;
+  /// Get token by token string
+  async fn tokens_get_by_token(&self, ctx: Arc<Context>, token: &str) -> Result<Token, DBError>;
+  /// Mark token as used
+  async fn tokens_mark_as_used(&self, ctx: Arc<Context>, token_id: &str) -> Result<(), DBError>;
 }
