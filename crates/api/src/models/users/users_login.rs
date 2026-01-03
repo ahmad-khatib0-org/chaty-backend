@@ -4,7 +4,6 @@ use chaty_proto::UsersLoginRequest;
 use chaty_result::{
   context::Context,
   errors::{AppError, OptionalParams},
-  tr,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -80,30 +79,6 @@ pub fn users_login_validate(
 // create an auditable request to be saved
 pub fn users_login_auditable(user: &UsersLoginRequest) -> Value {
   json!({ "email": user.email })
-}
-
-pub fn get_oauth_request_err_msg(lang: &str, code: &str, desc: &str) -> String {
-  let tr = |id: &str| -> String {
-    tr(lang, id, None::<()>)
-            .unwrap_or_else(|_| "Invalid authentication configuration. Try again, if issue persists, Please contact support.".to_string())
-  };
-
-  match code {
-    "invalid_request" => {
-      if desc.contains("redirect_uri") {
-        tr("oauth.invalid_request.redirect_uri")
-      } else {
-        tr("oauth.invalid_request.general")
-      }
-    }
-    "access_denied" => tr("oauth.access_denied.user"),
-    "unauthorized_client" => tr("oauth.unauthorized_client"),
-    "unsupported_response_type" => tr("oauth.unsupported_response_type"),
-    "invalid_scope" => tr("oauth.invalid_scope"),
-    "server_error" => tr("oauth.server_error.internal"),
-    "temporarily_unavailable" => tr("oauth.temporarily_unavailable"),
-    _ => tr("oauth.unknown_error"),
-  }
 }
 
 pub fn get_oauth_request_err_msg_id(code: &str, desc: &str) -> String {

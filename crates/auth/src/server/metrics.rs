@@ -10,27 +10,63 @@ use hyper::{
   Request, Response, StatusCode,
 };
 use hyper_util::rt::TokioIo;
-use prometheus::{CounterVec, HistogramOpts, HistogramVec, IntCounter, Registry, TextEncoder};
+use opentelemetry::{
+  metrics::{Counter, Histogram, MeterProvider as _},
+  KeyValue,
+};
+use opentelemetry_sdk::metrics::SdkMeterProvider;
+use prometheus::{Registry, TextEncoder};
 use tokio::{net::TcpListener, spawn};
 
-/// Prometheus metrics collector for auth service
-#[derive(Clone, Debug)]
+/// OpenTelemetry + Prometheus metrics collector for auth service
 pub struct MetricsCollector {
   config: Arc<Settings>,
   registry: Arc<Registry>,
-  pub token_checks_total: IntCounter,
-  pub token_checks_failed: IntCounter,
-  pub tokens_revoked: IntCounter,
-  pub authorization_allowed: IntCounter,
-  pub authorization_denied: CounterVec,
-  pub redis_operations_total: CounterVec,
-  pub redis_operations_failed: CounterVec,
-  pub cache_hits: IntCounter,
-  pub cache_misses: IntCounter,
-  pub hydra_validations_total: IntCounter,
-  pub hydra_validations_failed: IntCounter,
-  pub request_duration_seconds: HistogramVec,
-  pub redis_operation_duration_seconds: HistogramVec,
+  _provider: Arc<SdkMeterProvider>,
+  // Counters
+  pub token_checks_total: Counter<u64>,
+  pub token_checks_failed: Counter<u64>,
+  pub tokens_revoked: Counter<u64>,
+  pub authorization_allowed: Counter<u64>,
+  pub authorization_denied: Counter<u64>,
+  pub redis_operations_total: Counter<u64>,
+  pub redis_operations_failed: Counter<u64>,
+  pub cache_hits: Counter<u64>,
+  pub cache_misses: Counter<u64>,
+  pub hydra_validations_total: Counter<u64>,
+  pub hydra_validations_failed: Counter<u64>,
+  // Histograms
+  pub request_duration_seconds: Histogram<f64>,
+  pub redis_operation_duration_seconds: Histogram<f64>,
+}
+
+impl Clone for MetricsCollector {
+  fn clone(&self) -> Self {
+    Self {
+      config: self.config.clone(),
+      registry: self.registry.clone(),
+      _provider: self._provider.clone(),
+      token_checks_total: self.token_checks_total.clone(),
+      token_checks_failed: self.token_checks_failed.clone(),
+      tokens_revoked: self.tokens_revoked.clone(),
+      authorization_allowed: self.authorization_allowed.clone(),
+      authorization_denied: self.authorization_denied.clone(),
+      redis_operations_total: self.redis_operations_total.clone(),
+      redis_operations_failed: self.redis_operations_failed.clone(),
+      cache_hits: self.cache_hits.clone(),
+      cache_misses: self.cache_misses.clone(),
+      hydra_validations_total: self.hydra_validations_total.clone(),
+      hydra_validations_failed: self.hydra_validations_failed.clone(),
+      request_duration_seconds: self.request_duration_seconds.clone(),
+      redis_operation_duration_seconds: self.redis_operation_duration_seconds.clone(),
+    }
+  }
+}
+
+impl std::fmt::Debug for MetricsCollector {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("MetricsCollector").finish()
+  }
 }
 
 pub struct MetricsCollectorArgs {
@@ -40,125 +76,89 @@ pub struct MetricsCollectorArgs {
 impl MetricsCollector {
   pub fn new(args: MetricsCollectorArgs) -> Result<Self, BoxedErr> {
     let ie = |msg: &str, err: BoxedErr| {
-      let path = "auth.controller.metrics".into();
+      let path = "auth.server.metrics".into();
       InternalError { err_type: ErrorType::InternalError, temp: false, err, msg: msg.into(), path }
     };
 
-    // Initialize Prometheus metrics registry
+    // Initialize Prometheus registry
     let registry = Registry::new();
 
-    // Create Prometheus exporter
-    // let _prometheus_exporter = opentelemetry_prometheus::exporter()
-    //   .with_registry(registry.clone())
-    //   .build()
-    //   .map_err(|err| ie("failed to initialize prometheus exporter", Box::new(err)))?;
+    // Create OpenTelemetry Prometheus exporter
+    let exporter = opentelemetry_prometheus::exporter()
+      .with_registry(registry.clone())
+      .build()
+      .map_err(|err| ie("failed to initialize prometheus exporter", Box::new(err)))?;
+
+    // Create meter provider with Prometheus exporter
+    let provider = SdkMeterProvider::builder().with_reader(exporter).build();
+    let meter = provider.meter("auth-service");
+    let provider = Arc::new(provider);
 
     // --- Token Metrics ---
-    let token_checks_total = IntCounter::new("auth_token_checks_total", "Total token checks")
-      .map_err(|err| ie("failed to create token_checks_total", Box::new(err)))?;
-    registry
-      .register(Box::new(token_checks_total.clone()))
-      .map_err(|err| ie("failed to register token_checks_total", Box::new(err)))?;
+    let token_checks_total =
+      meter.u64_counter("auth_token_checks").with_description("Total token checks").build();
 
-    let token_checks_failed =
-      IntCounter::new("auth_token_checks_failed_total", "Total failed token checks")
-        .map_err(|err| ie("failed to create token_checks_failed", Box::new(err)))?;
-    registry
-      .register(Box::new(token_checks_failed.clone()))
-      .map_err(|err| ie("failed to register token_checks_failed", Box::new(err)))?;
+    let token_checks_failed = meter
+      .u64_counter("auth_token_checks_failed")
+      .with_description("Total failed token checks")
+      .build();
 
-    let tokens_revoked = IntCounter::new("auth_tokens_revoked_total", "Total tokens revoked")
-      .map_err(|err| ie("failed to create tokens_revoked", Box::new(err)))?;
-    registry
-      .register(Box::new(tokens_revoked.clone()))
-      .map_err(|err| ie("failed to register tokens_revoked", Box::new(err)))?;
+    let tokens_revoked =
+      meter.u64_counter("auth_tokens_revoked").with_description("Total tokens revoked").build();
 
     // --- Authorization Metrics ---
-    let authorization_allowed =
-      IntCounter::new("auth_authorization_allowed_total", "Total successful authorizations")
-        .map_err(|err| ie("failed to create authorization_allowed", Box::new(err)))?;
-    registry
-      .register(Box::new(authorization_allowed.clone()))
-      .map_err(|err| ie("failed to register authorization_allowed", Box::new(err)))?;
+    let authorization_allowed = meter
+      .u64_counter("auth_authorization_allowed")
+      .with_description("Total successful authorizations")
+      .build();
 
-    let authorization_denied = CounterVec::new(
-      prometheus::Opts::new("auth_authorization_denied_total", "Total denied authorizations"),
-      &["reason"],
-    )
-    .map_err(|err| ie("failed to create authorization_denied", Box::new(err)))?;
-    registry
-      .register(Box::new(authorization_denied.clone()))
-      .map_err(|err| ie("failed to register authorization_denied", Box::new(err)))?;
+    let authorization_denied = meter
+      .u64_counter("auth_authorization_denied")
+      .with_description("Total denied authorizations")
+      .build();
 
     // --- Redis Metrics ---
-    let redis_operations_total = CounterVec::new(
-      prometheus::Opts::new("auth_redis_operations_total", "Total Redis operations"),
-      &["operation"],
-    )
-    .map_err(|err| ie("failed to create redis_operations_total", Box::new(err)))?;
-    registry
-      .register(Box::new(redis_operations_total.clone()))
-      .map_err(|err| ie("failed to register redis_operations_total", Box::new(err)))?;
+    let redis_operations_total =
+      meter.u64_counter("auth_redis_operations").with_description("Total Redis operations").build();
 
-    let redis_operations_failed = CounterVec::new(
-      prometheus::Opts::new("auth_redis_operations_failed_total", "Total failed Redis operations"),
-      &["operation", "error"],
-    )
-    .map_err(|err| ie("failed to create redis_operations_failed", Box::new(err)))?;
-    registry
-      .register(Box::new(redis_operations_failed.clone()))
-      .map_err(|err| ie("failed to register redis_operations_failed", Box::new(err)))?;
+    let redis_operations_failed = meter
+      .u64_counter("auth_redis_operations_failed")
+      .with_description("Total failed Redis operations")
+      .build();
 
     // --- Cache Metrics ---
-    let cache_hits = IntCounter::new("auth_cache_hits_total", "Total cache hits")
-      .map_err(|err| ie("failed to create cache_hits", Box::new(err)))?;
-    registry
-      .register(Box::new(cache_hits.clone()))
-      .map_err(|err| ie("failed to register cache_hits", Box::new(err)))?;
+    let cache_hits =
+      meter.u64_counter("auth_cache_hits").with_description("Total cache hits").build();
 
-    let cache_misses = IntCounter::new("auth_cache_misses_total", "Total cache misses")
-      .map_err(|err| ie("failed to create cache_misses", Box::new(err)))?;
-    registry
-      .register(Box::new(cache_misses.clone()))
-      .map_err(|err| ie("failed to register cache_misses", Box::new(err)))?;
+    let cache_misses =
+      meter.u64_counter("auth_cache_misses").with_description("Total cache misses").build();
 
     // --- Hydra Metrics ---
-    let hydra_validations_total =
-      IntCounter::new("auth_hydra_validations_total", "Total Hydra validations")
-        .map_err(|err| ie("failed to create hydra_validations_total", Box::new(err)))?;
-    registry
-      .register(Box::new(hydra_validations_total.clone()))
-      .map_err(|err| ie("failed to register hydra_validations_total", Box::new(err)))?;
+    let hydra_validations_total = meter
+      .u64_counter("auth_hydra_validations")
+      .with_description("Total Hydra validations")
+      .build();
 
-    let hydra_validations_failed =
-      IntCounter::new("auth_hydra_validations_failed_total", "Total failed Hydra validations")
-        .map_err(|err| ie("failed to create hydra_validations_failed", Box::new(err)))?;
-    registry
-      .register(Box::new(hydra_validations_failed.clone()))
-      .map_err(|err| ie("failed to register hydra_validations_failed", Box::new(err)))?;
+    let hydra_validations_failed = meter
+      .u64_counter("auth_hydra_validations_failed")
+      .with_description("Total failed Hydra validations")
+      .build();
 
     // --- Duration Histograms ---
-    let request_duration_seconds = HistogramVec::new(
-      HistogramOpts::new("auth_request_duration_seconds", "Request duration in seconds"),
-      &[],
-    )
-    .map_err(|err| ie("failed to create request_duration_seconds", Box::new(err)))?;
-    registry
-      .register(Box::new(request_duration_seconds.clone()))
-      .map_err(|err| ie("failed to register request_duration_seconds", Box::new(err)))?;
+    let request_duration_seconds = meter
+      .f64_histogram("auth_request_duration_seconds")
+      .with_description("Request duration in seconds")
+      .build();
 
-    let redis_operation_duration_seconds = HistogramVec::new(
-      HistogramOpts::new("auth_redis_operation_duration_seconds", "Redis operation duration"),
-      &["operation"],
-    )
-    .map_err(|err| ie("failed to create redis_operation_duration", Box::new(err)))?;
-    registry
-      .register(Box::new(redis_operation_duration_seconds.clone()))
-      .map_err(|err| ie("failed to register redis_operation_duration_seconds", Box::new(err)))?;
+    let redis_operation_duration_seconds = meter
+      .f64_histogram("auth_redis_operation_duration_seconds")
+      .with_description("Redis operation duration in seconds")
+      .build();
 
     Ok(MetricsCollector {
       registry: Arc::new(registry),
       config: args.config,
+      _provider: provider,
       token_checks_total,
       token_checks_failed,
       tokens_revoked,
@@ -174,7 +174,6 @@ impl MetricsCollector {
       redis_operation_duration_seconds,
     })
   }
-
   /// Start HTTP server to expose metrics for Prometheus
   pub async fn run(&self) -> Result<(), BoxedErr> {
     let url = self.config.hosts.auth_metrics.clone();
@@ -229,56 +228,64 @@ impl MetricsCollector {
   }
 
   pub fn record_token_check_success(&self) {
-    self.token_checks_total.inc();
+    self.token_checks_total.add(1, &[]);
   }
 
   pub fn record_token_check_failure(&self) {
-    self.token_checks_total.inc();
-    self.token_checks_failed.inc();
+    self.token_checks_total.add(1, &[]);
+    self.token_checks_failed.add(1, &[]);
   }
 
   pub fn record_token_revoked(&self) {
-    self.tokens_revoked.inc();
+    self.tokens_revoked.add(1, &[]);
   }
 
   pub fn record_auth_allowed(&self) {
-    self.authorization_allowed.inc();
+    self.authorization_allowed.add(1, &[]);
   }
 
   pub fn record_auth_denied(&self, reason: &str) {
-    self.authorization_denied.with_label_values(&[reason]).inc();
+    self.authorization_denied.add(1, &[KeyValue::new("reason", reason.to_string())]);
   }
 
   pub fn record_redis_operation(&self, operation: &str) {
-    self.redis_operations_total.with_label_values(&[operation]).inc();
+    self.redis_operations_total.add(1, &[KeyValue::new("operation", operation.to_string())]);
   }
 
   pub fn record_redis_error(&self, operation: &str, error: &str) {
-    self.redis_operations_failed.with_label_values(&[operation, error]).inc();
+    self.redis_operations_failed.add(
+      1,
+      &[
+        KeyValue::new("operation", operation.to_string()),
+        KeyValue::new("error", error.to_string()),
+      ],
+    );
   }
 
   pub fn record_cache_hit(&self) {
-    self.cache_hits.inc();
+    self.cache_hits.add(1, &[]);
   }
 
   pub fn record_cache_miss(&self) {
-    self.cache_misses.inc();
+    self.cache_misses.add(1, &[]);
   }
 
   pub fn observe_redis_duration(&self, operation: &str, duration_secs: f64) {
-    self.redis_operation_duration_seconds.with_label_values(&[operation]).observe(duration_secs);
+    self
+      .redis_operation_duration_seconds
+      .record(duration_secs, &[KeyValue::new("operation", operation.to_string())]);
   }
 
   pub fn record_hydra_validation(&self) {
-    self.hydra_validations_total.inc();
+    self.hydra_validations_total.add(1, &[]);
   }
 
   pub fn record_hydra_validation_failure(&self) {
-    self.hydra_validations_total.inc();
-    self.hydra_validations_failed.inc();
+    self.hydra_validations_total.add(1, &[]);
+    self.hydra_validations_failed.add(1, &[]);
   }
 
   pub fn observe_request_duration(&self, duration_secs: f64) {
-    self.request_duration_seconds.with_label_values(&[]).observe(duration_secs);
+    self.request_duration_seconds.record(duration_secs, &[]);
   }
 }

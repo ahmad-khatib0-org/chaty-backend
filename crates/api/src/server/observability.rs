@@ -9,26 +9,60 @@ use hyper::{
   body::Bytes, server::conn::http1::Builder, service::service_fn, Request, Response, StatusCode,
 };
 use hyper_util::rt::tokio::TokioIo;
-use prometheus::{CounterVec, HistogramOpts, HistogramVec, IntCounter, Registry, TextEncoder};
+use opentelemetry::{
+  metrics::{Counter, Histogram, MeterProvider as _},
+  KeyValue,
+};
+use opentelemetry_sdk::metrics::SdkMeterProvider;
+use prometheus::{Registry, TextEncoder};
 use tokio::net::TcpListener;
 use tokio::spawn;
 
-/// Prometheus metrics collector for API service
-#[derive(Clone, Debug)]
+/// OpenTelemetry + Prometheus metrics collector for API service
 pub struct MetricsCollector {
   config: Arc<Settings>,
   registry: Arc<Registry>,
-  pub users_create_total: IntCounter,
-  pub users_create_failed: IntCounter,
-  pub users_get_total: IntCounter,
-  pub users_get_failed: IntCounter,
-  pub db_operations_total: CounterVec,
-  pub db_operations_failed: CounterVec,
-  pub broker_messages_sent: IntCounter,
-  pub broker_messages_failed: IntCounter,
-  pub request_duration_seconds: HistogramVec,
-  pub db_operation_duration_seconds: HistogramVec,
-  pub broker_operation_duration_seconds: HistogramVec,
+  _provider: Arc<SdkMeterProvider>,
+  // Counters
+  pub users_create_total: Counter<u64>,
+  pub users_create_failed: Counter<u64>,
+  pub users_get_total: Counter<u64>,
+  pub users_get_failed: Counter<u64>,
+  pub db_operations_total: Counter<u64>,
+  pub db_operations_failed: Counter<u64>,
+  pub broker_messages_sent: Counter<u64>,
+  pub broker_messages_failed: Counter<u64>,
+  // Histograms
+  pub request_duration_seconds: Histogram<f64>,
+  pub db_operation_duration_seconds: Histogram<f64>,
+  pub broker_operation_duration_seconds: Histogram<f64>,
+}
+
+impl Clone for MetricsCollector {
+  fn clone(&self) -> Self {
+    Self {
+      config: self.config.clone(),
+      registry: self.registry.clone(),
+      _provider: self._provider.clone(),
+      users_create_total: self.users_create_total.clone(),
+      users_create_failed: self.users_create_failed.clone(),
+      users_get_total: self.users_get_total.clone(),
+      users_get_failed: self.users_get_failed.clone(),
+      db_operations_total: self.db_operations_total.clone(),
+      db_operations_failed: self.db_operations_failed.clone(),
+      broker_messages_sent: self.broker_messages_sent.clone(),
+      broker_messages_failed: self.broker_messages_failed.clone(),
+      request_duration_seconds: self.request_duration_seconds.clone(),
+      db_operation_duration_seconds: self.db_operation_duration_seconds.clone(),
+      broker_operation_duration_seconds: self.broker_operation_duration_seconds.clone(),
+    }
+  }
+}
+
+impl std::fmt::Debug for MetricsCollector {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("MetricsCollector").finish()
+  }
 }
 
 pub struct MetricsCollectorArgs {
@@ -42,108 +76,77 @@ impl MetricsCollector {
       InternalError { err_type: ErrorType::InternalError, temp: false, err, msg: msg.into(), path }
     };
 
-    // Initialize Prometheus metrics registry
+    // Initialize Prometheus registry
     let registry = Registry::new();
 
-    // // Create Prometheus exporter
-    // let _prometheus_exporter = opentelemetry_prometheus::exporter()
-    //   .with_registry(registry.clone())
-    //   .build()
-    //   .map_err(|err| ie("failed to initialize prometheus exporter", Box::new(err)))?;
+    // Create OpenTelemetry Prometheus exporter
+    let exporter = opentelemetry_prometheus::exporter()
+      .with_registry(registry.clone())
+      .build()
+      .map_err(|err| ie("failed to initialize prometheus exporter", Box::new(err)))?;
+
+    // Create meter provider with Prometheus exporter
+    let provider = SdkMeterProvider::builder().with_reader(exporter).build();
+    let meter = provider.meter("api-service");
+    let provider = Arc::new(provider);
 
     // --- Users Metrics ---
-    let users_create_total = IntCounter::new("api_users_create_total", "Total user creations")
-      .map_err(|err| ie("failed to create users_create_total counter", Box::new(err)))?;
-    registry
-      .register(Box::new(users_create_total.clone()))
-      .map_err(|err| ie("failed to register users_create_total", Box::new(err)))?;
+    let users_create_total =
+      meter.u64_counter("api_users_create").with_description("Total user creations").build();
 
-    let users_create_failed =
-      IntCounter::new("api_users_create_failed_total", "Total failed user creations")
-        .map_err(|err| ie("failed to create users_create_failed counter", Box::new(err)))?;
-    registry
-      .register(Box::new(users_create_failed.clone()))
-      .map_err(|err| ie("failed to register users_create_failed", Box::new(err)))?;
+    let users_create_failed = meter
+      .u64_counter("api_users_create_failed")
+      .with_description("Total failed user creations")
+      .build();
 
     let users_get_total =
-      IntCounter::new("api_users_get_total", "Total user retrieval requests")
-        .map_err(|err| ie("failed to create users_get_total counter", Box::new(err)))?;
-    registry
-      .register(Box::new(users_get_total.clone()))
-      .map_err(|err| ie("failed to register users_get_total", Box::new(err)))?;
+      meter.u64_counter("api_users_get").with_description("Total user retrieval requests").build();
 
-    let users_get_failed =
-      IntCounter::new("api_users_get_failed_total", "Total failed user retrieval requests")
-        .map_err(|err| ie("failed to create users_get_failed counter", Box::new(err)))?;
-    registry
-      .register(Box::new(users_get_failed.clone()))
-      .map_err(|err| ie("failed to register users_get_failed", Box::new(err)))?;
+    let users_get_failed = meter
+      .u64_counter("api_users_get_failed")
+      .with_description("Total failed user retrieval requests")
+      .build();
 
     // --- Database Metrics ---
-    let db_operations_total = CounterVec::new(
-      prometheus::Opts::new("api_db_operations_total", "Total database operations"),
-      &["operation"],
-    )
-    .map_err(|err| ie("failed to create db_operations_total counter", Box::new(err)))?;
-    registry
-      .register(Box::new(db_operations_total.clone()))
-      .map_err(|err| ie("failed to register db_operations_total", Box::new(err)))?;
+    let db_operations_total =
+      meter.u64_counter("api_db_operations").with_description("Total database operations").build();
 
-    let db_operations_failed = CounterVec::new(
-      prometheus::Opts::new("api_db_operations_failed_total", "Total failed database operations"),
-      &["operation", "error"],
-    )
-    .map_err(|err| ie("failed to create db_operations_failed counter", Box::new(err)))?;
-    registry
-      .register(Box::new(db_operations_failed.clone()))
-      .map_err(|err| ie("failed to register db_operations_failed", Box::new(err)))?;
+    let db_operations_failed = meter
+      .u64_counter("api_db_operations_failed")
+      .with_description("Total failed database operations")
+      .build();
 
     // --- Broker Metrics ---
-    let broker_messages_sent =
-      IntCounter::new("api_broker_messages_sent_total", "Total messages sent to broker")
-        .map_err(|err| ie("failed to create broker_messages_sent counter", Box::new(err)))?;
-    registry
-      .register(Box::new(broker_messages_sent.clone()))
-      .map_err(|err| ie("failed to register broker_messages_sent", Box::new(err)))?;
+    let broker_messages_sent = meter
+      .u64_counter("api_broker_messages_sent")
+      .with_description("Total messages sent to broker")
+      .build();
 
-    let broker_messages_failed =
-      IntCounter::new("api_broker_messages_failed_total", "Total failed broker messages")
-        .map_err(|err| ie("failed to create broker_messages_failed counter", Box::new(err)))?;
-    registry
-      .register(Box::new(broker_messages_failed.clone()))
-      .map_err(|err| ie("failed to register broker_messages_failed", Box::new(err)))?;
+    let broker_messages_failed = meter
+      .u64_counter("api_broker_messages_failed")
+      .with_description("Total failed broker messages")
+      .build();
 
     // --- Duration Histograms ---
-    let request_duration_seconds = HistogramVec::new(
-      HistogramOpts::new("api_request_duration_seconds", "Request duration in seconds"),
-      &["endpoint"],
-    )
-    .map_err(|err| ie("failed to create request_duration histogram", Box::new(err)))?;
-    registry
-      .register(Box::new(request_duration_seconds.clone()))
-      .map_err(|err| ie("failed to register request_duration_seconds", Box::new(err)))?;
+    let request_duration_seconds = meter
+      .f64_histogram("api_request_duration_seconds")
+      .with_description("Request duration in seconds")
+      .build();
 
-    let db_operation_duration_seconds = HistogramVec::new(
-      HistogramOpts::new("api_db_operation_duration_seconds", "Database operation duration"),
-      &["operation"],
-    )
-    .map_err(|err| ie("failed to create db_duration histogram", Box::new(err)))?;
-    registry
-      .register(Box::new(db_operation_duration_seconds.clone()))
-      .map_err(|err| ie("failed to register db_operation_duration_seconds", Box::new(err)))?;
+    let db_operation_duration_seconds = meter
+      .f64_histogram("api_db_operation_duration_seconds")
+      .with_description("Database operation duration in seconds")
+      .build();
 
-    let broker_operation_duration_seconds = HistogramVec::new(
-      HistogramOpts::new("api_broker_operation_duration_seconds", "Broker operation duration"),
-      &["operation"],
-    )
-    .map_err(|err| ie("failed to create broker_duration histogram", Box::new(err)))?;
-    registry
-      .register(Box::new(broker_operation_duration_seconds.clone()))
-      .map_err(|err| ie("failed to register broker_operation_duration_seconds", Box::new(err)))?;
+    let broker_operation_duration_seconds = meter
+      .f64_histogram("api_broker_operation_duration_seconds")
+      .with_description("Broker operation duration in seconds")
+      .build();
 
     Ok(MetricsCollector {
       registry: Arc::new(registry),
       config: args.config,
+      _provider: provider,
       users_create_total,
       users_create_failed,
       users_get_total,
@@ -157,7 +160,6 @@ impl MetricsCollector {
       broker_operation_duration_seconds,
     })
   }
-
   /// Start HTTP server to expose metrics for Prometheus
   pub async fn run(&self) -> Result<(), BoxedErr> {
     let url = self.config.hosts.api_metrics.clone();
@@ -211,48 +213,60 @@ impl MetricsCollector {
   }
 
   pub fn record_users_create_success(&self) {
-    self.users_create_total.inc();
+    self.users_create_total.add(1, &[]);
   }
 
   pub fn record_users_create_failure(&self) {
-    self.users_create_total.inc();
-    self.users_create_failed.inc();
+    self.users_create_total.add(1, &[]);
+    self.users_create_failed.add(1, &[]);
   }
 
   pub fn record_users_get_success(&self) {
-    self.users_get_total.inc();
+    self.users_get_total.add(1, &[]);
   }
 
   pub fn record_users_get_failure(&self) {
-    self.users_get_total.inc();
-    self.users_get_failed.inc();
+    self.users_get_total.add(1, &[]);
+    self.users_get_failed.add(1, &[]);
   }
 
   pub fn record_db_operation(&self, operation: &str) {
-    self.db_operations_total.with_label_values(&[operation]).inc();
+    self.db_operations_total.add(1, &[KeyValue::new("operation", operation.to_string())]);
   }
 
   pub fn record_db_error(&self, operation: &str, error: &str) {
-    self.db_operations_failed.with_label_values(&[operation, error]).inc();
+    self.db_operations_failed.add(
+      1,
+      &[
+        KeyValue::new("operation", operation.to_string()),
+        KeyValue::new("error", error.to_string()),
+      ],
+    );
   }
 
   pub fn record_broker_message_sent(&self) {
-    self.broker_messages_sent.inc();
+    self.broker_messages_sent.add(1, &[]);
   }
 
   pub fn record_broker_message_failed(&self) {
-    self.broker_messages_failed.inc();
+    self.broker_messages_failed.add(1, &[]);
   }
 
   pub fn observe_request_duration(&self, endpoint: &str, duration_secs: f64) {
-    self.request_duration_seconds.with_label_values(&[endpoint]).observe(duration_secs);
+    self
+      .request_duration_seconds
+      .record(duration_secs, &[KeyValue::new("endpoint", endpoint.to_string())]);
   }
 
   pub fn observe_db_operation_duration(&self, operation: &str, duration_secs: f64) {
-    self.db_operation_duration_seconds.with_label_values(&[operation]).observe(duration_secs);
+    self
+      .db_operation_duration_seconds
+      .record(duration_secs, &[KeyValue::new("operation", operation.to_string())]);
   }
 
   pub fn observe_broker_operation_duration(&self, operation: &str, duration_secs: f64) {
-    self.broker_operation_duration_seconds.with_label_values(&[operation]).observe(duration_secs);
+    self
+      .broker_operation_duration_seconds
+      .record(duration_secs, &[KeyValue::new("operation", operation.to_string())]);
   }
 }
