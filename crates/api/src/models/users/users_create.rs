@@ -15,11 +15,11 @@ use validator::ValidateEmail;
 /// Regex for valid usernames
 /// Allows letters, digits, underscores, dots, and hyphens
 /// Blocks zero-width spaces and lookalike characters
-static RE_USERNAME: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z0-9._-]{3,60}$").unwrap());
-static USERS_EMAIL_MAX_LENGHT: usize = 255;
-static USERS_USERNAME_MAX_LENGTH: usize = 60;
-static USERS_PASSWORD_MIN_LENGTH: usize = 8;
-static USERS_PASSWORD_MAX_LENGTH: usize = 72;
+pub static RE_USERNAME: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z0-9._-]{3,60}$").unwrap());
+pub static USERS_EMAIL_MAX_LENGHT: usize = 255;
+pub static USERS_USERNAME_MAX_LENGTH: usize = 60;
+pub static USERS_PASSWORD_MIN_LENGTH: usize = 8;
+pub static USERS_PASSWORD_MAX_LENGTH: usize = 72;
 
 pub fn users_create_validate(
   ctx: Arc<Context>,

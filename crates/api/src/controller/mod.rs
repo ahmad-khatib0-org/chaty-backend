@@ -2,12 +2,14 @@ pub(crate) mod audit;
 mod router;
 mod users;
 
+use std::time::Duration;
 use std::{net::SocketAddr, sync::Arc};
 
 use chaty_config::Settings;
 use chaty_database::{DatabaseNoSql, DatabaseSql};
 use chaty_proto::chaty_service_server::ChatyServiceServer;
 use chaty_result::{errors::BoxedErr, middleware_context};
+use reqwest::Client;
 use tonic::{service::InterceptorLayer, transport::Server};
 use tower::ServiceBuilder;
 use tracing::info;
@@ -29,16 +31,26 @@ pub(crate) struct ApiController {
   pub(super) config: Arc<Settings>,
   pub(super) broker: Arc<BrokerApi>,
   pub(super) metrics: Arc<MetricsCollector>,
+  pub(super) http_client: Arc<Client>,
 }
 
 impl ApiController {
   pub fn new(args: ApiControllerArgs) -> ApiController {
+    let http_client = reqwest::Client::builder()
+      .timeout(Duration::from_secs(10)) // Don't hang forever
+      .connect_timeout(Duration::from_secs(3))
+      .pool_idle_timeout(Duration::from_secs(90))
+      .pool_max_idle_per_host(10) // Keep connections alive for reuse
+      .build()
+      .expect("Failed to create reqwest client for ApiController");
+
     let controller = ApiController {
       nosql_db: args.nosql_db,
       sql_db: args.sql_db,
       config: args.config,
       broker: args.broker,
       metrics: args.metrics,
+      http_client: Arc::new(http_client),
     };
 
     controller

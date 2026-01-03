@@ -12,18 +12,21 @@ pub type AnyMap = HashMap<String, Value>;
 #[serde(rename_all = "snake_case")]
 pub enum EventName {
   UsersCreate,
+  UsersLogin,
 }
 
 #[derive(Serialize, Deserialize, Debug, Display, Clone, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum EventParameterKey {
   UsersCreate,
+  UsersLogin,
 }
 
 impl EventParameterKey {
   pub fn as_string(&self) -> Cow<'static, str> {
     match self {
       Self::UsersCreate => Cow::Borrowed("users_create"),
+      Self::UsersLogin => Cow::Borrowed("users_login"),
     }
   }
 }

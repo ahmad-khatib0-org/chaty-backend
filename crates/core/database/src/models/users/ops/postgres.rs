@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use chaty_proto::User;
+use chaty_proto::{User, UserStatus};
 use chaty_result::{
   context::Context,
   errors::{DBError, ErrorType},
 };
 
-use crate::{CachedUserData, PostgresDb, Token, UsersRepository};
+use crate::{CachedUserData, EnumHelpers, PostgresDb, Token, UsersRepository};
 
 #[async_trait()]
 impl UsersRepository for PostgresDb {
@@ -55,6 +55,52 @@ impl UsersRepository for PostgresDb {
 
         let msg = format!("failed to create user: {}", err);
         Err(DBError { err_type, msg, path, err: Box::new(err) })
+      }
+    }
+  }
+
+  async fn users_get_by_email(&self, _ctx: Arc<Context>, email: &str) -> Result<User, DBError> {
+    let path = "database.users.tokens_create".to_string();
+
+    let row: Result<_, _> = sqlx::query!(
+      r#"
+       SELECT 
+         id, username, email, password_hash, display_name, badges, 
+         status_text, status_presence, profile_content, profile_background_id, 
+         privileged, suspended_until, created_at, updated_at, verified 
+       FROM users
+       WHERE email = $1
+      "#,
+      email,
+    )
+    .fetch_optional(self.db())
+    .await;
+
+    match row {
+      Ok(Some(r)) => Ok(User {
+        id: r.id,
+        username: r.username,
+        email: r.email,
+        password: r.password_hash,
+        display_name: r.display_name,
+        badges: r.badges.map(|b| b as u32),
+        status_text: r.status_text,
+        status_presence: UserStatus::from_optional_string(r.status_presence).map(|s| s.to_i32()),
+        profile_content: r.profile_content,
+        profile_background_id: r.profile_background_id,
+        privileged: r.privileged.unwrap_or_default(),
+        suspended_until: r.suspended_until.map(|su| su as u64),
+        created_at: r.created_at as u64,
+        updated_at: r.updated_at as u64,
+        verified: r.verified.unwrap_or_default(),
+      }),
+      Ok(None) => {
+        let msg = "user not found".to_string();
+        Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+      }
+      Err(err) => {
+        let msg = format!("failed to fetch user by email: {}", err);
+        Err(DBError { err_type: ErrorType::DatabaseError, msg, path, err: Box::new(err) })
       }
     }
   }

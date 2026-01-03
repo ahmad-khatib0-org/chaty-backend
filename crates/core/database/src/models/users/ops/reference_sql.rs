@@ -24,6 +24,14 @@ impl UsersRepository for ReferenceSqlDb {
     }
   }
 
+  async fn users_get_auth_data(
+    &self,
+    _ctx: Arc<Context>,
+    _user_id: &str,
+  ) -> Result<CachedUserData, DBError> {
+    Ok(CachedUserData { ..Default::default() })
+  }
+
   async fn tokens_create(&self, _ctx: Arc<Context>, token: &Token) -> Result<(), DBError> {
     let mut tokens = self.tokens.lock().await;
     let path = "database.users.tokens_create".to_string();
@@ -37,11 +45,17 @@ impl UsersRepository for ReferenceSqlDb {
     }
   }
 
-  async fn users_get_auth_data(
-    &self,
-    _ctx: Arc<Context>,
-    _user_id: &str,
-  ) -> Result<CachedUserData, DBError> {
-    Ok(CachedUserData { ..Default::default() })
+  async fn users_get_by_email(&self, _ctx: Arc<Context>, email: &str) -> Result<User, DBError> {
+    let users = self.users.lock().await;
+    let path = "database.users.users_get_by_email".to_string();
+    let user = users.iter().find(|u| u.1.email == email);
+
+    match user {
+      Some(user) => Ok(user.1.clone()),
+      None => {
+        let msg = "user is not exists".to_string();
+        Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+      }
+    }
   }
 }

@@ -64,8 +64,20 @@
     "tr": "Authentication required. Please log in and try again."
   },
   {
+    "id": "users.login.error",
+    "tr": "An error occurred during authentication."
+  },
+  {
+    "id": "users.credentials.error",
+    "tr": "Invalid provided credentials, Please check your email and password"
+  },
+  {
     "id": "users.create.success",
     "tr": "An account created successfully, And a new email will be sent to your inbox in order to confirm your newly created account"
+  },
+  {
+    "id": "users.email.not_found",
+    "tr": "A user with the given email is not found"
   },
   {
     "id": "users.username.invalid",
@@ -102,6 +114,10 @@
   {
     "id": "users.password.required",
     "tr": "Password is required"
+  },
+  {
+    "id": "users.password.length",
+    "tr": "Password must be between {{Min}} and {{Max}} characters long"
   },
   {
     "id": "users.password.too_short",
@@ -162,5 +178,77 @@
   {
     "id": "email.footer.copyright",
     "tr": "&copy; 2024 Chaty. All rights reserved."
+  },
+  {
+    "id": "oauth.invalid_request.redirect_uri",
+    "tr": "The authentication configuration is incorrect. Try again, if issue presists, Please contact support."
+  },
+  {
+    "id": "oauth.invalid_request.client_id",
+    "tr": "Invalid authentication configuration. Try again, if issue presists, Please contact support."
+  },
+  {
+    "id": "oauth.invalid_request.general",
+    "tr": "Invalid authentication request. Please try again."
+  },
+  {
+    "id": "oauth.access_denied.user",
+    "tr": "You denied the authentication request."
+  },
+  {
+    "id": "oauth.access_denied.system",
+    "tr": "Access was denied by the system. Please contact support."
+  },
+  {
+    "id": "oauth.unauthorized_client",
+    "tr": "This application is not authorized to perform authentication."
+  },
+  {
+    "id": "oauth.unsupported_response_type",
+    "tr": "The authentication response type is not supported."
+  },
+  {
+    "id": "oauth.invalid_scope.requested",
+    "tr": "The requested permissions are invalid or excessive."
+  },
+  {
+    "id": "oauth.invalid_scope.configured",
+    "tr": "Invalid authentication configuration. Try again, if issue presists, Please contact support."
+  },
+  {
+    "id": "oauth.server_error.internal",
+    "tr": "Authentication service is temporarily unavailable. Please try again in a few moments."
+  },
+  {
+    "id": "oauth.server_error.external",
+    "tr": "A dependent service is temporarily unavailable. Please try again in a few moments."
+  },
+  {
+    "id": "oauth.temporarily_unavailable",
+    "tr": "Authentication service is busy. Please try again in a moment."
+  },
+  {
+    "id": "oauth.connection_timeout",
+    "tr": "The authentication service took too long to respond. Please check your connection and try again."
+  },
+  {
+    "id": "oauth.unknown_error",
+    "tr": "An unexpected error occurred during authentication. Please try again."
+  },
+  {
+    "id": "oauth.network_error",
+    "tr": "Network connection issue. Please check your internet connection and try again."
+  },
+  {
+    "id": "oauth.login_challenge.missing",
+    "tr": "The login challenge is missing from the URL, please make sure to not manipulate the Link, Please Try again, if issue presists, Please contact support."
+  },
+  {
+    "id": "oauth.login_state.invalid",
+    "tr": "The login token state is missing from the URL/cookies, make sure to not manipulate the Link, Please Try again, if issue presists, Please contact support."
+  },
+  {
+    "id": "oauth.login_code.invalid",
+    "tr": "The login token code is missing from the URL, make sure to not manipulate the Link, Please Try again, if issue presists, Please contact support."
   }
 ]

@@ -4,7 +4,10 @@ use chaty_proto::{
 };
 use tonic::{Request, Response, Status};
 
-use crate::controller::{users::users_create::users_create, ApiController};
+use crate::controller::{
+  users::{users_create::users_create, users_login::users_login},
+  ApiController,
+};
 
 #[tonic::async_trait]
 impl ChatyService for ApiController {
@@ -17,8 +20,8 @@ impl ChatyService for ApiController {
 
   async fn users_login(
     &self,
-    _request: Request<UsersLoginRequest>,
+    request: Request<UsersLoginRequest>,
   ) -> Result<Response<UsersLoginResponse>, Status> {
-    todo!();
+    users_login(self, request).await
   }
 }

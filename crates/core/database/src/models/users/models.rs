@@ -1,4 +1,7 @@
+use chaty_proto::UserStatus;
 use serde::{Deserialize, Serialize};
+
+use crate::EnumHelpers;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Default)]
 pub struct CachedUserData {
@@ -32,6 +35,39 @@ impl TokenType {
     match self {
       TokenType::EmailVerification => "email_confirmation",
       TokenType::PasswordReset => "password_reset",
+    }
+  }
+}
+
+impl EnumHelpers for UserStatus {
+  fn to_str(&self) -> &'static str {
+    match self {
+      UserStatus::Online => "online",
+      UserStatus::Idle => "idle",
+      UserStatus::Focus => "focus",
+      UserStatus::Busy => "busy",
+      UserStatus::Invisible => "invisible",
+    }
+  }
+
+  fn from_optional_string(s: Option<String>) -> Option<Self> {
+    match s.unwrap_or_default().to_lowercase().as_str() {
+      "online" => Some(UserStatus::Online),
+      "idle" => Some(UserStatus::Idle),
+      "focus" => Some(UserStatus::Focus),
+      "busy" => Some(UserStatus::Busy),
+      "invisible" => Some(UserStatus::Invisible),
+      _ => None,
+    }
+  }
+
+  fn to_i32(&self) -> i32 {
+    match self {
+      UserStatus::Online => 0,
+      UserStatus::Idle => 1,
+      UserStatus::Focus => 2,
+      UserStatus::Busy => 3,
+      UserStatus::Invisible => 4,
     }
   }
 }

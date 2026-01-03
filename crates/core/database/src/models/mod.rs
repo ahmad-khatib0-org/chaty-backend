@@ -44,3 +44,19 @@ impl std::ops::Deref for DatabaseSql {
     }
   }
 }
+
+pub trait EnumHelpers {
+  fn to_string(&self) -> String {
+    self.to_str().to_string()
+  }
+
+  fn to_str(&self) -> &'static str;
+
+  fn from_optional_string(value: Option<String>) -> Option<Self>
+  where
+    Self: Sized;
+
+  fn to_i32(&self) -> i32 {
+    return 0;
+  }
+}

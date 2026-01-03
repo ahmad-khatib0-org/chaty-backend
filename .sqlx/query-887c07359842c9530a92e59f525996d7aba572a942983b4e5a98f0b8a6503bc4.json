@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n       SELECT \n         id, username, email, password_hash, display_name, badges, \n         status_text, status_presence, profile_content, profile_background_id, \n         privileged, suspended_until, created_at, updated_at, verified \n       FROM users\n       WHERE email = $1\n      ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "password_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "badges",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "status_text",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "status_presence",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "profile_content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "profile_background_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "privileged",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "suspended_until",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "verified",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "887c07359842c9530a92e59f525996d7aba572a942983b4e5a98f0b8a6503bc4"
+}
