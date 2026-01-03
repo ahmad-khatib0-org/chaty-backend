@@ -26,6 +26,8 @@ pub struct MetricsCollector {
   // Counters
   pub users_create_total: Counter<u64>,
   pub users_create_failed: Counter<u64>,
+  pub users_login_total: Counter<u64>,
+  pub users_login_failed: Counter<u64>,
   pub users_get_total: Counter<u64>,
   pub users_get_failed: Counter<u64>,
   pub db_operations_total: Counter<u64>,
@@ -46,6 +48,8 @@ impl Clone for MetricsCollector {
       _provider: self._provider.clone(),
       users_create_total: self.users_create_total.clone(),
       users_create_failed: self.users_create_failed.clone(),
+      users_login_total: self.users_login_total.clone(),
+      users_login_failed: self.users_login_failed.clone(),
       users_get_total: self.users_get_total.clone(),
       users_get_failed: self.users_get_failed.clone(),
       db_operations_total: self.db_operations_total.clone(),
@@ -99,6 +103,16 @@ impl MetricsCollector {
       .with_description("Total failed user creations")
       .build();
 
+    let users_login_total = meter
+      .u64_counter("api_users_login")
+      .with_description("Total user logins")
+      .build();
+
+    let users_login_failed = meter
+      .u64_counter("api_users_login_failed")
+      .with_description("Total failed user logins")
+      .build();
+
     let users_get_total =
       meter.u64_counter("api_users_get").with_description("Total user retrieval requests").build();
 
@@ -149,6 +163,8 @@ impl MetricsCollector {
       _provider: provider,
       users_create_total,
       users_create_failed,
+      users_login_total,
+      users_login_failed,
       users_get_total,
       users_get_failed,
       db_operations_total,
@@ -228,6 +244,15 @@ impl MetricsCollector {
   pub fn record_users_get_failure(&self) {
     self.users_get_total.add(1, &[]);
     self.users_get_failed.add(1, &[]);
+  }
+
+  pub fn record_users_login_success(&self) {
+    self.users_login_total.add(1, &[]);
+  }
+
+  pub fn record_users_login_failure(&self) {
+    self.users_login_total.add(1, &[]);
+    self.users_login_failed.add(1, &[]);
   }
 
   pub fn record_db_operation(&self, operation: &str) {
