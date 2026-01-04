@@ -188,8 +188,8 @@ impl UsersRepository for PostgresDb {
     let result: Result<_, _> =
       sqlx::query("UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3")
         .bind(password_hash)
-        .bind(user_id)
         .bind(time_get_millis() as i64)
+        .bind(user_id)
         .execute(self.db())
         .await;
 
