@@ -58,6 +58,7 @@ impl Default for Kafka {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Topics {
   pub password_reset: String,
+  pub password_reset_dlq: String,
   pub user_created: String,
   pub email_confirmation: String,
   pub email_confirmation_dlq: String,
@@ -66,8 +67,9 @@ pub struct Topics {
 impl Default for Topics {
   fn default() -> Self {
     Self {
-      password_reset: "api.users.password_reset".to_string(),
       user_created: "api.users.user_created".to_string(),
+      password_reset: "api.users.password_reset".to_string(),
+      password_reset_dlq: "api.users.password_reset_dlq".to_string(),
       email_confirmation: "api.users.email_confirmation".to_string(),
       email_confirmation_dlq: "api.users.email_confirmation_dlq".to_string(),
     }
@@ -86,6 +88,7 @@ pub struct OAuth {
   pub auth_endpoint: String,
   pub userinfo_endpoint: String,
   pub confirmation_url: String,
+  pub reset_password_url: String,
 }
 
 impl Default for OAuth {
@@ -99,8 +102,9 @@ impl Default for OAuth {
       token_endpoint: "http://localhost:4444/oauth2/token".to_string(),
       auth_endpoint: "http://localhost:4444/oauth2/auth".to_string(),
       userinfo_endpoint: "http://localhost:4444/userinfo".to_string(),
-      confirmation_url: "http://localhost:3000/api/auth/email-confirmation".to_string(),
       scopes: vec!["openid".to_string(), "profile".to_string(), "email".to_string()],
+      confirmation_url: "http://localhost:3000/api/auth/email-confirmation".to_string(),
+      reset_password_url: "http://localhost:3000/api/auth/reset-password".to_string(),
     }
   }
 }

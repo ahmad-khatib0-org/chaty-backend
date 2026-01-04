@@ -12,18 +12,20 @@ use tracing::info;
 pub struct BrokerApi {
   pub producer: FutureProducer,
   pub password_reset_topic: String,
-  pub user_created_topic: String,
+  pub password_reset_dlq_topic: String,
   pub email_confirmation_topic: String,
   pub email_confirmation_dlq_topic: String,
+  pub user_created_topic: String,
 }
 
 impl std::fmt::Debug for BrokerApi {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("BrokerConfig")
+    f.debug_struct("BrokerApi")
       .field("email_confirmation_topic", &self.email_confirmation_topic)
-      .field("password_reset_topic", &self.password_reset_topic)
-      .field("user_created_topic", &self.user_created_topic)
       .field("email_confirmation_dlq_topic", &self.email_confirmation_dlq_topic)
+      .field("password_reset_topic", &self.password_reset_topic)
+      .field("password_reset_dlq_topic", &self.password_reset_dlq_topic)
+      .field("user_created_topic", &self.user_created_topic)
       .finish()
   }
 }
@@ -46,10 +48,8 @@ impl BrokerApi {
       .set("retry.backoff.ms", "100")
       .create()
       .map_err(|err| {
-        ie(
-          "failed to initialize redpanda producer",
-          Box::new(Error::new(std::io::ErrorKind::Other, format!("{:?}", err))),
-        )
+        let msg = "failed to initialize redpanda producer";
+        ie(msg, Box::new(Error::new(ErrorKind::Other, format!("{:?}", err))))
       })?;
 
     info!("Redpanda broker initialized with brokers: {}", broker_addrs);
@@ -57,9 +57,10 @@ impl BrokerApi {
     Ok(BrokerApi {
       producer,
       email_confirmation_topic: settings.topics.email_confirmation.clone(),
-      password_reset_topic: settings.topics.password_reset.clone(),
-      user_created_topic: settings.topics.user_created.clone(),
       email_confirmation_dlq_topic: settings.topics.email_confirmation_dlq.clone(),
+      password_reset_topic: settings.topics.password_reset.clone(),
+      password_reset_dlq_topic: settings.topics.password_reset_dlq.clone(),
+      user_created_topic: settings.topics.user_created.clone(),
     })
   }
 
@@ -68,19 +69,13 @@ impl BrokerApi {
     &self,
     message: &serde_json::Value,
   ) -> Result<(), BoxedErr> {
-    let payload = serde_json::to_string(message).map_err(|e| Box::new(e) as BoxedErr)?;
+    let payload = serde_json::to_string(message).map_err(|e| Box::new(e))?;
     let key = message.get("user_id").and_then(|v| v.as_str()).unwrap_or("unknown");
 
-    self
-      .producer
-      .send(
-        FutureRecord::to(&self.email_confirmation_topic).payload(&payload).key(key),
-        Timeout::After(Duration::from_secs(30)),
-      )
-      .await
-      .map_err(|(err, _)| {
-        Box::new(Error::new(std::io::ErrorKind::Other, format!("Kafka error: {}", err))) as BoxedErr
-      })?;
+    let record = FutureRecord::to(&self.email_confirmation_topic).payload(&payload).key(key);
+    self.producer.send(record, Timeout::After(Duration::from_secs(30))).await.map_err(
+      |(err, _)| Box::new(Error::new(ErrorKind::Other, format!("Kafka error: {}", err))),
+    )?;
 
     info!("Published email confirmation message to topic");
     Ok(())
@@ -91,21 +86,50 @@ impl BrokerApi {
     &self,
     message: &serde_json::Value,
   ) -> Result<(), BoxedErr> {
-    let payload = serde_json::to_string(message).map_err(|e| Box::new(e) as BoxedErr)?;
+    let payload = serde_json::to_string(message).map_err(|e| Box::new(e))?;
     let key = message.get("user_id").and_then(|v| v.as_str()).unwrap_or("unknown");
 
-    self
-      .producer
-      .send(
-        FutureRecord::to(&self.email_confirmation_dlq_topic).payload(&payload).key(key),
-        Timeout::After(Duration::from_secs(30)),
-      )
-      .await
-      .map_err(|(err, _)| {
+    let record = FutureRecord::to(&self.email_confirmation_dlq_topic).payload(&payload).key(key);
+    self.producer.send(record, Timeout::After(Duration::from_secs(30))).await.map_err(
+      |(err, _)| {
         Box::new(Error::new(ErrorKind::Other, format!("Kafka error: {}", err))) as BoxedErr
-      })?;
+      },
+    )?;
 
-    info!("Published message to DLQ topic");
+    info!("Published email confirmation message to DLQ topic");
+    Ok(())
+  }
+
+  /// Publish password reset message
+  pub async fn publish_password_reset(&self, message: &serde_json::Value) -> Result<(), BoxedErr> {
+    let payload = serde_json::to_string(message).map_err(|e| Box::new(e))?;
+    let key = message.get("user_id").and_then(|v| v.as_str()).unwrap_or("unknown");
+
+    let record = FutureRecord::to(&self.password_reset_topic).payload(&payload).key(key);
+    self.producer.send(record, Timeout::After(Duration::from_secs(30))).await.map_err(
+      |(err, _)| Box::new(Error::new(ErrorKind::Other, format!("Kafka error: {}", err))),
+    )?;
+
+    info!("Published password reset message to topic");
+    Ok(())
+  }
+
+  /// Publish a failed password reset message to DLQ (Dead Letter Queue)
+  pub async fn publish_password_reset_dlq(
+    &self,
+    message: &serde_json::Value,
+  ) -> Result<(), BoxedErr> {
+    let payload = serde_json::to_string(message).map_err(|e| Box::new(e))?;
+    let key = message.get("user_id").and_then(|v| v.as_str()).unwrap_or("unknown");
+
+    let record = FutureRecord::to(&self.password_reset_dlq_topic).payload(&payload).key(key);
+    self.producer.send(record, Timeout::After(Duration::from_secs(30))).await.map_err(
+      |(err, _)| {
+        Box::new(Error::new(ErrorKind::Other, format!("Kafka error: {}", err))) as BoxedErr
+      },
+    )?;
+
+    info!("Published message to password reset DLQ topic");
     Ok(())
   }
 }

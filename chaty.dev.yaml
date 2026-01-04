@@ -37,6 +37,7 @@ topics:
   email_confirmation: "api.users.email_confirmation"
   email_confirmation_dlq: "api.users.email_confirmation_dlq"
   password_reset: "api.users.password_reset"
+  password_reset_dlq: api.users.password_reset_dlq
   user_created: "api.users.user_created"
 
 # OAuth 2.0 / OpenID Connect configuration (Hydra)
@@ -53,6 +54,7 @@ oauth:
   redirect_uri: "http://localhost:3000/api/auth/callback"
   # Email confirmation URL
   confirmation_url: "http://localhost:3000/auth/email-confirmation"
+  reset_password_url: "http://localhost:3000/auth/reset-password"
   # Scopes to request
   scopes:
     - "openid"

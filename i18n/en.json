@@ -266,5 +266,45 @@
   {
     "id": "users.email_confirmation.token_invalid",
     "tr": "The confirmation link is invalid. Please request a new confirmation email."
+  },
+  {
+    "id": "users.forgot_password.success",
+    "tr": "Password reset link has been sent to your email. Please check your inbox and follow the instructions."
+  },
+  {
+    "id": "users.forgot_password.email_not_found",
+    "tr": "No account found with the provided email address."
+  },
+  {
+    "id": "email.password_reset.subject",
+    "tr": "Reset Your Password"
+  },
+  {
+    "id": "email.password_reset.greeting",
+    "tr": "Hello {{ username }},"
+  },
+  {
+    "id": "email.password_reset.intro",
+    "tr": "We received a request to reset your password. Click the button below to reset it:"
+  },
+  {
+    "id": "email.password_reset.button_text",
+    "tr": "Reset Password"
+  },
+  {
+    "id": "email.password_reset.alt_text",
+    "tr": "Or copy and paste this link into your browser:"
+  },
+  {
+    "id": "email.password_reset.expiry_notice",
+    "tr": "This link expires in 24 hours."
+  },
+  {
+    "id": "email.password_reset.not_requested",
+    "tr": "If you didn't request a password reset, please ignore this email."
+  },
+  {
+    "id": "email.password_reset.signature",
+    "tr": "Best regards,<br>The Chaty Team"
   }
 ]

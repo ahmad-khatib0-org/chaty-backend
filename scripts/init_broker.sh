@@ -21,6 +21,7 @@ TOPICS=(
   "api.users.email_confirmation"
   "api.users.email_confirmation_dlq"
   "api.users.password_reset"
+  "api.users.password_reset_dlq"
   "api.users.user_created"
 )
 
