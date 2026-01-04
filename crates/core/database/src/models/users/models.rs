@@ -45,6 +45,13 @@ impl TokenType {
       _ => TokenType::EmailVerification, // Default to EmailVerification
     }
   }
+
+  pub fn to_i32(&self) -> i32 {
+    match self {
+      TokenType::EmailVerification => 0,
+      TokenType::PasswordReset => 1,
+    }
+  }
 }
 
 impl EnumHelpers for UserStatus {

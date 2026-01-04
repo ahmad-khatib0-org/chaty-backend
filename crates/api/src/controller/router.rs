@@ -2,6 +2,7 @@ use chaty_proto::{
   chaty_service_server::ChatyService, UsersCreateRequest, UsersCreateResponse,
   UsersEmailConfirmationRequest, UsersEmailConfirmationResponse, UsersLoginRequest,
   UsersLoginResponse, UsersForgotPasswordRequest, UsersForgotPasswordResponse,
+  UsersResetPasswordRequest, UsersResetPasswordResponse,
 };
 use tonic::{Request, Response, Status};
 
@@ -9,6 +10,7 @@ use crate::controller::{
   users::{
     users_create::users_create, users_email_confirmation::users_email_confirmation,
     users_login::users_login, users_forgot_password::users_forgot_password,
+    users_reset_password::users_reset_password,
   },
   ApiController,
 };
@@ -41,5 +43,12 @@ impl ChatyService for ApiController {
     request: Request<UsersForgotPasswordRequest>,
   ) -> Result<Response<UsersForgotPasswordResponse>, Status> {
     users_forgot_password(self, request).await
+  }
+
+  async fn users_reset_password(
+    &self,
+    request: Request<UsersResetPasswordRequest>,
+  ) -> Result<Response<UsersResetPasswordResponse>, Status> {
+    users_reset_password(self, request).await
   }
 }

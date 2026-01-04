@@ -624,6 +624,7 @@ dependencies = [
  "chaty-config",
  "chaty-proto",
  "chaty-result",
+ "chaty-utils",
  "scylla",
  "serde",
  "sqlx",
@@ -633,9 +634,9 @@ dependencies = [
 
 [[package]]
 name = "chaty-proto"
-version = "0.1.26"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adfa222c5e47f10d469cd234e6140c6209794abbd5e8567a698495fd693e8005"
+checksum = "12133c5d1e9ea703a39ea2bc382cd11c30f5169066d40fb7e3d3a0eaa1b806e8"
 dependencies = [
  "prost 0.13.5",
  "prost-types",

@@ -50,8 +50,7 @@ pub async fn users_create(
 
   let mut audit_clone = audit.clone();
   let return_err = move |e: AppError| async move {
-    let data = get_audit().await;
-    audit_clone.set_event_parameter(EventParameterKey::UsersCreate, data);
+    audit_clone.set_event_parameter(EventParameterKey::Data, get_audit().await);
     process_audit(&audit_clone);
     Response::new(UsersCreateResponse { response: Some(Error(e.to_proto())) })
   };
@@ -152,8 +151,7 @@ pub async fn users_create(
   let broker_duration = broker_start.elapsed().as_secs_f64();
   ctr.metrics.observe_broker_operation_duration("email_confirmation_publish", broker_duration);
 
-  let data = get_audit().await;
-  audit.set_event_parameter(EventParameterKey::UsersCreate, data);
+  audit.set_event_parameter(EventParameterKey::Data, get_audit().await);
   audit.success();
   process_audit(&audit);
 

@@ -144,6 +144,22 @@
     "tr": "Failed to process password. Please try again."
   },
   {
+    "id": "users.reset_password.success",
+    "tr": "Your password has been reset successfully. You can now log in with your new password."
+  },
+  {
+    "id": "users.reset_password.token_invalid",
+    "tr": "The reset link is invalid or has expired."
+  },
+  {
+    "id": "users.reset_password.token_expired",
+    "tr": "The reset link has expired. Please request a new password reset."
+  },
+  {
+    "id": "users.reset_password.password_mismatch",
+    "tr": "Password and password confirmation do not match."
+  },
+  {
     "id": "email.confirmation.subject",
     "tr": "Confirm Your Email Address"
   },

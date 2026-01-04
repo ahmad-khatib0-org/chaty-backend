@@ -13,6 +13,7 @@ use chaty_result::{
 };
 use chaty_utils::time::time_get_seconds;
 use serde_json::json;
+use tokio::{spawn, sync::Mutex};
 use tonic::{Code, Request, Response, Status};
 use ulid::Ulid;
 
@@ -32,9 +33,20 @@ pub async fn users_forgot_password(
 
   let mut audit = AuditRecord::new(ctx.clone(), EventName::UsersForgotPassword, EventStatus::Fail);
 
+  let req_clone = req.clone();
+  let audit_future = spawn(async move { users_forgot_password_auditable(&req_clone) });
+  let audit_slot = Arc::new(Mutex::new(Some(audit_future)));
+
+  let get_audit = || async {
+    let mut slot = audit_slot.lock().await;
+    let handle = slot.take().expect("audit handle already taken");
+    handle.await.unwrap_or_else(|e| json!({ "error": format!("{e}") }))
+  };
+
   let mut audit_clone = audit.clone();
   let return_err = move |e: AppError| async move {
-    audit_clone.fail();
+    let data = get_audit().await;
+    audit_clone.set_event_parameter(EventParameterKey::UserId, data);
     process_audit(&audit_clone);
     Response::new(UsersForgotPasswordResponse { response: Some(Error(e.to_proto())) })
   };
@@ -124,6 +136,8 @@ pub async fn users_forgot_password(
   ctr.metrics.observe_broker_operation_duration("password_reset_publish", broker_duration);
 
   // Success
+  let data = get_audit().await;
+  audit.set_event_parameter(EventParameterKey::UserId, data);
   audit.success();
   audit.set_event_parameter(EventParameterKey::UserId, json!(user.id));
   process_audit(&audit);
@@ -137,4 +151,8 @@ pub async fn users_forgot_password(
   Ok(Response::new(UsersForgotPasswordResponse {
     response: Some(Data(UsersForgotPasswordResponseData { message })),
   }))
+}
+
+fn users_forgot_password_auditable(req: &UsersForgotPasswordRequest) -> serde_json::Value {
+  json!({ "email": req.email })
 }

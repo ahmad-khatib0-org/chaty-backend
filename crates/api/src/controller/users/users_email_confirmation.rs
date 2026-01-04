@@ -13,6 +13,7 @@ use chaty_result::{
 };
 use chaty_utils::time::time_get_seconds;
 use serde_json::json;
+use tokio::{spawn, sync::Mutex};
 use tonic::{Code, Request, Response, Status};
 use urlencoding::decode;
 
@@ -33,8 +34,19 @@ pub async fn users_email_confirmation(
   let mut audit =
     AuditRecord::new(ctx.clone(), EventName::UsersEmailConfirmation, EventStatus::Fail);
 
-  let audit_clone = audit.clone();
+  let req_clone = req.clone();
+  let audit_future = spawn(async move { users_email_confirmation_auditable(&req_clone) });
+  let audit_slot = Arc::new(Mutex::new(Some(audit_future)));
+
+  let get_audit = || async {
+    let mut slot = audit_slot.lock().await;
+    let handle = slot.take().expect("audit handle already taken");
+    handle.await.unwrap_or_else(|e| json!({ "error": format!("{e}") }))
+  };
+
+  let mut audit_clone = audit.clone();
   let return_err = move |e: AppError| async move {
+    audit_clone.set_event_parameter(EventParameterKey::Data, get_audit().await);
     process_audit(&audit_clone);
     Response::new(UsersEmailConfirmationResponse { response: Some(Error(e.to_proto())) })
   };
@@ -96,8 +108,8 @@ pub async fn users_email_confirmation(
     let message = tr::<()>(lang, "users.email_confirmation.already_confirmed", None)
       .unwrap_or_else(|_| "Your email has already been confirmed.".to_string());
     let data = UsersEmailConfirmationResponseData { message };
+    audit.set_event_parameter(EventParameterKey::Data, get_audit().await);
     audit.success();
-    audit.set_event_parameter(EventParameterKey::UserId, json!(token.user_id));
     process_audit(&audit);
     return Ok(Response::new(UsersEmailConfirmationResponse { response: Some(Data(data)) }));
   }
@@ -115,9 +127,8 @@ pub async fn users_email_confirmation(
     return Ok(return_err(ie(Box::new(err))).await);
   }
 
-  // Success
+  audit.set_event_parameter(EventParameterKey::Data, get_audit().await);
   audit.success();
-  audit.set_event_parameter(EventParameterKey::UserId, json!(token.user_id));
   process_audit(&audit);
 
   let request_duration = start.elapsed().as_secs_f64();
@@ -129,4 +140,8 @@ pub async fn users_email_confirmation(
   Ok(Response::new(UsersEmailConfirmationResponse {
     response: Some(Data(UsersEmailConfirmationResponseData { message })),
   }))
+}
+
+fn users_email_confirmation_auditable(req: &UsersEmailConfirmationRequest) -> serde_json::Value {
+  json!({ "token": req.token })
 }

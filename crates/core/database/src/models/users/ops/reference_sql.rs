@@ -24,12 +24,39 @@ impl UsersRepository for ReferenceSqlDb {
     }
   }
 
+  async fn users_get_by_id(&self, _ctx: Arc<Context>, user_id: &str) -> Result<User, DBError> {
+    let users = self.users.lock().await;
+    let path = "database.users.users_get_by_id".to_string();
+    let user = users.iter().find(|u| u.1.id == user_id);
+
+    match user {
+      Some(user) => Ok(user.1.clone()),
+      None => {
+        let msg = "user not found".to_string();
+        Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+      }
+    }
+  }
+
   async fn users_get_auth_data(
     &self,
     _ctx: Arc<Context>,
     _user_id: &str,
   ) -> Result<CachedUserData, DBError> {
     Ok(CachedUserData { ..Default::default() })
+  }
+
+  async fn users_update_password(&self, _ctx: Arc<Context>, user_id: &str, password_hash: &str) -> Result<(), DBError> {
+    let mut users = self.users.lock().await;
+    let path = "database.users.users_update_password".to_string();
+
+    if let Some(user) = users.get_mut(user_id) {
+      user.password = password_hash.to_string();
+      Ok(())
+    } else {
+      let msg = "user not found".to_string();
+      Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+    }
   }
 
   async fn tokens_create(&self, _ctx: Arc<Context>, token: &Token) -> Result<(), DBError> {

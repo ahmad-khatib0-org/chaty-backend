@@ -51,8 +51,7 @@ pub async fn users_login(
 
   let mut audit_clone = audit.clone();
   let return_err = move |e: AppError| async move {
-    let data = get_audit().await;
-    audit_clone.set_event_parameter(EventParameterKey::UsersLogin, data);
+    audit_clone.set_event_parameter(EventParameterKey::Data, get_audit().await);
     process_audit(&audit_clone);
     Response::new(UsersLoginResponse { response: Some(Error(e.to_proto())) })
   };
@@ -179,8 +178,7 @@ pub async fn users_login(
     return Ok(return_err(ie(Box::new(StdErr::new(ErrorKind::Other, msg)))).await);
   }
 
-  let data = get_audit().await;
-  audit.set_event_parameter(EventParameterKey::UsersCreate, data);
+  audit.set_event_parameter(EventParameterKey::Data, get_audit().await);
   audit.success();
   process_audit(&audit);
 

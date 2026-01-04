@@ -6,6 +6,7 @@ use chaty_result::{
   context::Context,
   errors::{DBError, ErrorType},
 };
+use chaty_utils::time::time_get_millis;
 
 use crate::{CachedUserData, EnumHelpers, PostgresDb, Token, TokenType, UsersRepository};
 
@@ -105,6 +106,102 @@ impl UsersRepository for PostgresDb {
     }
   }
 
+  async fn users_get_by_id(&self, _ctx: Arc<Context>, user_id: &str) -> Result<User, DBError> {
+    let path = "database.users.users_get_by_id".to_string();
+
+    let row: Result<_, _> = sqlx::query!(
+      r#"
+       SELECT 
+         id, username, email, password_hash, display_name, badges, 
+         status_text, status_presence, profile_content, profile_background_id, 
+         privileged, suspended_until, created_at, updated_at, verified 
+       FROM users
+       WHERE id = $1
+      "#,
+      user_id,
+    )
+    .fetch_optional(self.db())
+    .await;
+
+    match row {
+      Ok(Some(r)) => Ok(User {
+        id: r.id,
+        username: r.username,
+        email: r.email,
+        password: r.password_hash,
+        display_name: r.display_name,
+        badges: r.badges.map(|b| b as u32),
+        status_text: r.status_text,
+        status_presence: UserStatus::from_optional_string(r.status_presence).map(|s| s.to_i32()),
+        profile_content: r.profile_content,
+        profile_background_id: r.profile_background_id,
+        privileged: r.privileged.unwrap_or_default(),
+        suspended_until: r.suspended_until.map(|su| su as u64),
+        created_at: r.created_at as u64,
+        updated_at: r.updated_at as u64,
+        verified: r.verified.unwrap_or_default(),
+      }),
+      Ok(None) => {
+        let msg = "user not found".to_string();
+        Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+      }
+      Err(err) => {
+        let msg = format!("failed to fetch user by id: {}", err);
+        Err(DBError { err_type: ErrorType::DatabaseError, msg, path, err: Box::new(err) })
+      }
+    }
+  }
+
+  async fn users_get_auth_data(
+    &self,
+    _ctx: Arc<Context>,
+    user_id: &str,
+  ) -> Result<CachedUserData, DBError> {
+    let path = "database.users.users_get_auth_data".to_string();
+
+    let row: Result<_, _> = sqlx::query("SELECT id FROM users WHERE id = $1")
+      .bind(user_id)
+      .fetch_optional(self.db())
+      .await;
+
+    match row {
+      Ok(Some(_)) => Ok(CachedUserData { ..Default::default() }),
+      Ok(None) => {
+        let msg = "user not found".to_string();
+        Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
+      }
+      Err(err) => {
+        let msg = format!("failed to fetch user auth data: {}", err);
+        Err(DBError { err_type: ErrorType::DatabaseError, msg, path, err: Box::new(err) })
+      }
+    }
+  }
+
+  async fn users_update_password(
+    &self,
+    _ctx: Arc<Context>,
+    user_id: &str,
+    password_hash: &str,
+  ) -> Result<(), DBError> {
+    let path = "database.users.users_update_password".to_string();
+
+    let result: Result<_, _> =
+      sqlx::query("UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3")
+        .bind(password_hash)
+        .bind(user_id)
+        .bind(time_get_millis() as i64)
+        .execute(self.db())
+        .await;
+
+    match result {
+      Ok(_) => Ok(()),
+      Err(err) => {
+        let msg = format!("failed to update user password: {}", err);
+        Err(DBError { err_type: ErrorType::DatabaseError, msg, path, err: Box::new(err) })
+      }
+    }
+  }
+
   async fn tokens_create(&self, _ctx: Arc<Context>, token: &Token) -> Result<(), DBError> {
     let path = "database.users.tokens_create".to_string();
 
@@ -133,31 +230,6 @@ impl UsersRepository for PostgresDb {
 
         let msg = format!("failed to create a token: {}", err);
         Err(DBError { err_type, msg, path, err: Box::new(err) })
-      }
-    }
-  }
-
-  async fn users_get_auth_data(
-    &self,
-    _ctx: Arc<Context>,
-    user_id: &str,
-  ) -> Result<CachedUserData, DBError> {
-    let path = "database.users.users_get_auth_data".to_string();
-
-    let row: Result<_, _> = sqlx::query("SELECT id FROM users WHERE id = $1")
-      .bind(user_id)
-      .fetch_optional(self.db())
-      .await;
-
-    match row {
-      Ok(Some(_)) => Ok(CachedUserData { ..Default::default() }),
-      Ok(None) => {
-        let msg = "user not found".to_string();
-        Err(DBError { err_type: ErrorType::NotFound, msg, path, ..Default::default() })
-      }
-      Err(err) => {
-        let msg = format!("failed to fetch user auth data: {}", err);
-        Err(DBError { err_type: ErrorType::DatabaseError, msg, path, err: Box::new(err) })
       }
     }
   }
