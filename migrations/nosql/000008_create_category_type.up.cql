@@ -1,5 +1,5 @@
 -- Category
-CREATE TYPE category_type (
+CREATE TYPE IF NOT EXISTS category_type (
   id text, -- ULID
   title text,
   position int,

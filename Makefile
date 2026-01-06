@@ -65,7 +65,8 @@ db/migrations/nosql/force: confirm
 	@echo "Force fixing NoSQL migration to version ${force}"
 	@migrate -path ./migrations/nosql -database ${DB_DSN_NOSQL} force ${force}
 
-YAML_FILE := chaty.local.yaml
+YAML_FILE_LOCAL := chaty.local.yaml
+YAML_FILE_DEV := chaty.dev.yaml
 ENV_FILE := $$HOME/Downloads/personal/portfolio/chaty/chaty-web/packages/chaty-app/.env.development
 
 run:
@@ -108,12 +109,15 @@ run:
 		echo "Generated client_id: $$client_id"; \
 		echo "Replacing OAuth Client ID in environment files..."; \
 		sed -i -E "s#(NEXT_PUBLIC_OAUTH_CLIENT_ID=).*#\1$$client_id#" $(ENV_FILE); \
+		sed -i -E "s#(OAUTH_CLIENT_ID=).*#\1$$client_id#" $(ENV_FILE); \
 		echo "Replacing OAuth Client ID in YAML config with yq..."; \
-		yq eval -i ".oauth.client_id = \"$$client_id\"" $(YAML_FILE); \
+		yq eval -i ".oauth.client_id = \"$$client_id\"" $(YAML_FILE_LOCAL); \
+		yq eval -i ".oauth.client_id = \"$$client_id\"" $(YAML_FILE_DEV); \
 		echo "Replacement complete."; \
 	}
 	
 	./scripts/init_database.sh
 	./scripts/init_broker.sh
 	$(MAKE) db/migrations/sql/up
+	$(MAKE) db/migrations/nosql/up
 

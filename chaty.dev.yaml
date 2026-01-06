@@ -4,7 +4,6 @@
 production: false
 available_languages: ["en"]
 default_language: "en"
-
 # Database configuration
 # Note: Using ScyllaDB (Cassandra-compatible NoSQL database)
 database:
@@ -16,7 +15,6 @@ database:
   # Dragonfly connection URL (Redis-compatible cache)
   # For development running locally on your machine
   dragonfly: "redis://dragonfly:6379"
-
 # Kafka/Redpanda message broker configuration
 kafka:
   # List of Kafka brokers
@@ -31,7 +29,6 @@ kafka:
   sasl_mechanism: null
   # Security protocol (e.g., PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL)
   security_protocol: null
-
 # Redpanda topics configuration
 topics:
   email_confirmation: "api.users.email_confirmation"
@@ -39,7 +36,6 @@ topics:
   password_reset: "api.users.password_reset"
   password_reset_dlq: api.users.password_reset_dlq
   user_created: "api.users.user_created"
-
 # OAuth 2.0 / OpenID Connect configuration (Hydra)
 oauth:
   # Public endpoint of Hydra authorization server
@@ -47,7 +43,7 @@ oauth:
   # Admin endpoint of Hydra authorization server
   admin_url: "http://hydra:4445"
   # Client ID for this application
-  client_id: ""
+  client_id: "d16d53e2-a7d8-448c-8800-572e9658b6f0"
   # Client secret for this application
   client_secret: ""
   # Redirect URI after successful authentication
@@ -66,7 +62,6 @@ oauth:
   auth_endpoint: "http://hydra:4444/oauth2/auth"
   # User info endpoint
   userinfo_endpoint: "http://hydra:4444/userinfo"
-
 # Web service locations
 # Defaults assume all services are reverse-proxied
 # Remember to change these to https/wss where appropriate in production!
@@ -85,14 +80,12 @@ hosts:
   # Metrics endpoints for services
   api_metrics: "0.0.0.0:8888"
   auth_metrics: "0.0.0.0:8889"
-
 # API server configuration
 api:
   # User registration settings
   registration:
     # Whether an invite should be required for registration
     invite_only: false
-
   # Email service configuration
   email:
     # Provider: smtp or sendgrid
@@ -110,7 +103,6 @@ api:
       api_key: ""
       from_address: ""
       reply_to: null
-
   # Security and API keys
   security:
     # Authifier Shield API key
@@ -127,12 +119,10 @@ api:
     captcha:
       hcaptcha_key: ""
       hcaptcha_sitekey: ""
-
   # Worker pool configuration
   workers:
     # Maximum concurrent connections (to proxy server)
     max_concurrent_connections: 50
-
   # LiveKit voice/video configuration
   livekit:
     # How long to ring devices for when calling in dms/groups, in seconds
@@ -141,11 +131,9 @@ api:
     # Make sure to change the secret when deploying
     # The key and secret should match the values livekit is using
     nodes: {}
-
   # User-related settings
   users:
     early_adopter_cutoff: null
-
 # Push notification daemon configuration
 pushd:
   # Changes the names of the queues to not overlap
@@ -155,7 +143,6 @@ pushd:
   # Changes how many users are processed in each chunk when resolving role/everyone mentions.
   # Increasing this will resolve mentions faster, but will consume more memory while resolving.
   mass_mention_chunk_size: 200
-
   # Message queue names (none of these should need changing)
   exchange: "chaty.notifications"
   message_queue: "notifications.origin.message"
@@ -165,13 +152,11 @@ pushd:
   fr_received_queue: "notifications.ingest.fr_received"
   generic_queue: "notifications.ingest.generic"
   ack_queue: "notifications.process.ack"
-
   # VAPID push notifications configuration
   vapid:
     queue: "notifications.outbound.vapid"
     private_key: ""
     public_key: ""
-
   # Firebase Cloud Messaging configuration
   fcm:
     queue: "notifications.outbound.fcm"
@@ -185,7 +170,6 @@ pushd:
     token_uri: ""
     auth_provider_x509_cert_url: ""
     client_x509_cert_url: ""
-
   # Apple Push Notification service configuration
   apn:
     queue: "notifications.outbound.apn"
@@ -193,7 +177,6 @@ pushd:
     pkcs8: ""
     key_id: ""
     team_id: ""
-
 # File storage and processing configuration
 files:
   # Encryption key for stored files
@@ -214,7 +197,6 @@ files:
     - "application/vnd.microsoft.portable-executable"
     - "application/vnd.android.package-archive"
     - "application/zip"
-
   # File size and resolution limits
   limit:
     # Minimum file size (in bytes)
@@ -225,7 +207,6 @@ files:
     max_mega_pixels: 40
     # Maximum pixel side of an image
     max_pixel_side: 10000
-
   # Preview image resolutions for different use cases
   preview:
     attachments: [1280, 1280]
@@ -234,7 +215,6 @@ files:
     icons: [128, 128]
     banners: [480, 480]
     emojis: [128, 128]
-
   # S3 storage configuration (MinIO)
   s3:
     # S3 protocol endpoint
@@ -250,7 +230,6 @@ files:
     secret_access_key: "chaty-dev-password"
     # Bucket to upload to by default
     default_bucket: "chaty-uploads"
-
 # Feature gates and limits
 features:
   # Enable webhook support
@@ -260,7 +239,6 @@ features:
   mass_mentions_send_notifications: false
   # Can role/everyone pings be used at all
   mass_mentions_enabled: true
-
   # Feature limits configuration
   limits:
     # Global limits applied to all users
@@ -277,7 +255,6 @@ features:
       # Maximum permissible body size in bytes for uploads
       # (should be greater than any one file upload limit)
       body_limit_size: 20000000
-
     # Limits imposed on new users
     new_user:
       # Number of outgoing friend requests permitted at any time
@@ -306,7 +283,6 @@ features:
         icons: 2500000
         banners: 6000000
         emojis: 500000
-
     # Limits imposed on users by default
     default:
       # Number of outgoing friend requests permitted at any time
@@ -335,13 +311,11 @@ features:
         icons: 2500000
         banners: 6000000
         emojis: 500000
-
   # Advanced feature configuration
   advanced:
     # The max amount of messages the kafka provider will delay for before forcing handling of a channel.
     # default: 5
     process_message_delay_limit: 5
-
 # Sentry error reporting configuration
 sentry:
   api: ""
