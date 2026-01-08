@@ -623,6 +623,25 @@ impl Default for Features {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct Search {
+  pub host: String,
+  pub api_key: String,
+  pub index_usernames: String,
+  pub request_timeout_seconds: u64,
+}
+
+impl Default for Search {
+  fn default() -> Self {
+    Self {
+      host: "http://localhost:7700".to_string(),
+      api_key: String::new(),
+      index_usernames: "users".to_string(),
+      request_timeout_seconds: 30,
+    }
+  }
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct Sentry {
   pub api: String,
   pub ws: String,
@@ -660,6 +679,7 @@ pub struct Settings {
   pub pushd: Pushd,
   pub files: Files,
   pub features: Features,
+  pub search: Search,
   pub sentry: Sentry,
   pub production: bool,
   pub available_languages: Vec<String>,
@@ -678,6 +698,7 @@ impl Default for Settings {
       pushd: Pushd::default(),
       files: Files::default(),
       features: Features::default(),
+      search: Search::default(),
       sentry: Sentry::default(),
       production: false,
       default_language: "en".to_string(),

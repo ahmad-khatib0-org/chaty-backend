@@ -208,6 +208,33 @@ services:
           cpus: "0.2"
 
   # ============================================================================
+  # Search Engine - Meilisearch
+  # ============================================================================
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: meilisearch
+    restart: always
+    networks:
+      - chaty-dev
+    ports:
+      - "7700:7700"
+    volumes:
+      - meilisearch_data:/meili_data
+    environment:
+      MEILI_MASTER_KEY: "meilisearch-dev-key"
+      MEILI_NO_ANALYTICS: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  # ============================================================================
   # Mail Server - MailDev (for development)
   # ============================================================================
   maildev:
@@ -544,6 +571,7 @@ volumes:
   dragonfly_data:
   redpanda_data:
   minio_data:
+  meilisearch_data:
   hydra_db_data:
   prometheus_data:
   jaeger_data:

@@ -342,5 +342,21 @@
   {
     "id": "groups.recipients.required",
     "tr": "At least one member is required"
+  },
+  {
+    "id": "search.empty_query",
+    "tr": "Search query cannot be empty"
+  },
+  {
+    "id": "search.search_usernames.success",
+    "tr": "Users found successfully"
+  },
+  {
+    "id": "search.search_usernames.no_results",
+    "tr": "No users found matching your search"
+  },
+  {
+    "id": "search.search_usernames.invalid_limit",
+    "tr": "Search limit must be between 1 and 5"
   }
 ]

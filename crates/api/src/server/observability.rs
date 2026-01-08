@@ -38,6 +38,8 @@ pub struct MetricsCollector {
   pub users_get_failed: Counter<u64>,
   pub groups_create_total: Counter<u64>,
   pub groups_create_failed: Counter<u64>,
+  pub search_usernames_total: Counter<u64>,
+  pub search_usernames_failed: Counter<u64>,
   pub db_operations_total: Counter<u64>,
   pub db_operations_failed: Counter<u64>,
   pub broker_messages_sent: Counter<u64>,
@@ -68,6 +70,8 @@ impl Clone for MetricsCollector {
       users_get_failed: self.users_get_failed.clone(),
       groups_create_total: self.groups_create_total.clone(),
       groups_create_failed: self.groups_create_failed.clone(),
+      search_usernames_total: self.search_usernames_total.clone(),
+      search_usernames_failed: self.search_usernames_failed.clone(),
       db_operations_total: self.db_operations_total.clone(),
       db_operations_failed: self.db_operations_failed.clone(),
       broker_messages_sent: self.broker_messages_sent.clone(),
@@ -174,6 +178,17 @@ impl MetricsCollector {
       .with_description("Total failed group creations")
       .build();
 
+    // --- Search Metrics ---
+    let search_usernames_total = meter
+      .u64_counter("api_search_usernames")
+      .with_description("Total username search requests")
+      .build();
+
+    let search_usernames_failed = meter
+      .u64_counter("api_search_usernames_failed")
+      .with_description("Total failed username search requests")
+      .build();
+
     // --- Database Metrics ---
     let db_operations_total =
       meter.u64_counter("api_db_operations").with_description("Total database operations").build();
@@ -228,6 +243,8 @@ impl MetricsCollector {
       users_get_failed,
       groups_create_total,
       groups_create_failed,
+      search_usernames_total,
+      search_usernames_failed,
       db_operations_total,
       db_operations_failed,
       broker_messages_sent,
@@ -350,6 +367,15 @@ impl MetricsCollector {
   pub fn record_groups_create_failure(&self) {
     self.groups_create_total.add(1, &[]);
     self.groups_create_failed.add(1, &[]);
+  }
+
+  pub fn record_search_usernames_success(&self) {
+    self.search_usernames_total.add(1, &[]);
+  }
+
+  pub fn record_search_usernames_failure(&self) {
+    self.search_usernames_total.add(1, &[]);
+    self.search_usernames_failed.add(1, &[]);
   }
 
   pub fn record_db_operation(&self, operation: &str) {

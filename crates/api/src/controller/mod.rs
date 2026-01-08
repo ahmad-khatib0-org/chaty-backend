@@ -1,6 +1,7 @@
 pub(crate) mod audit;
 mod groups;
 mod router;
+mod search;
 mod users;
 
 use std::time::Duration;

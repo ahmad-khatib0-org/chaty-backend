@@ -316,6 +316,12 @@ features:
     # The max amount of messages the kafka provider will delay for before forcing handling of a channel.
     # default: 5
     process_message_delay_limit: 5
+# Meilisearch configuration
+search:
+  host: "http://meilisearch:7700"
+  api_key: "meilisearch-dev-key"
+  index_usernames: "users"
+  request_timeout_seconds: 30
 # Sentry error reporting configuration
 sentry:
   api: ""
