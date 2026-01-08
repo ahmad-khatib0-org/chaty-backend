@@ -78,6 +78,7 @@ hosts:
   # Metrics endpoints for services
   api_metrics: "0.0.0.0:8888"
   auth_metrics: "0.0.0.0:8889"
+  search_metrics: "0.0.0.0:8890"
 # API server configuration
 api:
   # User registration settings

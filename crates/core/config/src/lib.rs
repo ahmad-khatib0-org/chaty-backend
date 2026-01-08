@@ -121,6 +121,7 @@ pub struct Hosts {
   pub otel_collector: String,
   pub api_metrics: String,
   pub auth_metrics: String,
+  pub search_metrics: String,
 }
 
 impl Default for Hosts {
@@ -136,6 +137,7 @@ impl Default for Hosts {
       otel_collector: "http://0.0.0.0:4317".to_string(),
       api_metrics: "0.0.0.0:8888".to_string(),
       auth_metrics: "0.0.0.0:8889".to_string(),
+      search_metrics: "0.0.0.0:8890".to_string(),
     }
   }
 }

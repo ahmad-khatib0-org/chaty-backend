@@ -662,8 +662,22 @@ dependencies = [
 name = "chaty-search-worker"
 version = "0.1.0"
 dependencies = [
+ "chaty-config",
+ "chaty-database",
+ "chaty-result",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "opentelemetry 0.31.0",
+ "opentelemetry-prometheus",
+ "opentelemetry_sdk 0.31.0",
+ "prometheus",
+ "reqwest",
  "serde",
  "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
