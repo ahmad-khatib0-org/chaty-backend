@@ -7,5 +7,6 @@ members = [
   "crates/core/config",
   "crates/core/database",
   "crates/core/result",
-  "crates/core/utils",
+  "crates/core/utils", 
+  "crates/search-worker",
 ]
