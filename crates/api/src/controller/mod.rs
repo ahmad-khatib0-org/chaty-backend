@@ -1,4 +1,5 @@
 pub(crate) mod audit;
+mod groups;
 mod router;
 mod users;
 

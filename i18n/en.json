@@ -322,5 +322,25 @@
   {
     "id": "email.password_reset.signature",
     "tr": "Best regards,<br>The Chaty Team"
+  },
+  {
+    "id": "groups.create.success",
+    "tr": "Group created successfully"
+  },
+  {
+    "id": "groups.name.required",
+    "tr": "Group name is required"
+  },
+  {
+    "id": "groups.name.length",
+    "tr": "Group name must be between {{Min}} and {{Max}} characters"
+  },
+  {
+    "id": "groups.description.length",
+    "tr": "Group description must be {{Max}} characters or less"
+  },
+  {
+    "id": "groups.recipients.required",
+    "tr": "At least one member is required"
   }
 ]

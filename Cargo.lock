@@ -634,12 +634,13 @@ dependencies = [
 
 [[package]]
 name = "chaty-proto"
-version = "0.1.28"
+version = "0.1.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12133c5d1e9ea703a39ea2bc382cd11c30f5169066d40fb7e3d3a0eaa1b806e8"
+checksum = "0b3c423a410af4db0306326d25cc075fc1e1edee9e19804e805a466f096a549d"
 dependencies = [
  "prost 0.13.5",
  "prost-types",
+ "scylla",
  "serde",
  "tonic",
 ]

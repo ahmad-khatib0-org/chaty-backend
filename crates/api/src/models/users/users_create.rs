@@ -109,8 +109,8 @@ pub async fn users_create_pre_save(
     profile_background_id: None,
     privileged: false,
     suspended_until: None,
-    created_at: now_millis,
-    updated_at: now_millis,
+    created_at: now_millis as i64,
+    updated_at: now_millis as i64,
     verified: false,
   })
 }

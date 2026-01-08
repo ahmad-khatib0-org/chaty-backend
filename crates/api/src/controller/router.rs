@@ -1,15 +1,16 @@
 use chaty_proto::{
-  chaty_service_server::ChatyService, UsersCreateRequest, UsersCreateResponse,
-  UsersEmailConfirmationRequest, UsersEmailConfirmationResponse, UsersLoginRequest,
-  UsersLoginResponse, UsersForgotPasswordRequest, UsersForgotPasswordResponse,
-  UsersResetPasswordRequest, UsersResetPasswordResponse,
+  chaty_service_server::ChatyService, GroupsCreateRequest, GroupsCreateResponse,
+  UsersCreateRequest, UsersCreateResponse, UsersEmailConfirmationRequest,
+  UsersEmailConfirmationResponse, UsersForgotPasswordRequest, UsersForgotPasswordResponse,
+  UsersLoginRequest, UsersLoginResponse, UsersResetPasswordRequest, UsersResetPasswordResponse,
 };
 use tonic::{Request, Response, Status};
 
 use crate::controller::{
+  groups::groups_create::groups_create,
   users::{
     users_create::users_create, users_email_confirmation::users_email_confirmation,
-    users_login::users_login, users_forgot_password::users_forgot_password,
+    users_forgot_password::users_forgot_password, users_login::users_login,
     users_reset_password::users_reset_password,
   },
   ApiController,
@@ -50,5 +51,12 @@ impl ChatyService for ApiController {
     request: Request<UsersResetPasswordRequest>,
   ) -> Result<Response<UsersResetPasswordResponse>, Status> {
     users_reset_password(self, request).await
+  }
+
+  async fn groups_create(
+    &self,
+    request: Request<GroupsCreateRequest>,
+  ) -> Result<Response<GroupsCreateResponse>, Status> {
+    groups_create(self, request).await
   }
 }

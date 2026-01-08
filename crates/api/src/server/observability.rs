@@ -36,6 +36,8 @@ pub struct MetricsCollector {
   pub users_reset_password_failed: Counter<u64>,
   pub users_get_total: Counter<u64>,
   pub users_get_failed: Counter<u64>,
+  pub groups_create_total: Counter<u64>,
+  pub groups_create_failed: Counter<u64>,
   pub db_operations_total: Counter<u64>,
   pub db_operations_failed: Counter<u64>,
   pub broker_messages_sent: Counter<u64>,
@@ -64,6 +66,8 @@ impl Clone for MetricsCollector {
       users_reset_password_failed: self.users_reset_password_failed.clone(),
       users_get_total: self.users_get_total.clone(),
       users_get_failed: self.users_get_failed.clone(),
+      groups_create_total: self.groups_create_total.clone(),
+      groups_create_failed: self.groups_create_failed.clone(),
       db_operations_total: self.db_operations_total.clone(),
       db_operations_failed: self.db_operations_failed.clone(),
       broker_messages_sent: self.broker_messages_sent.clone(),
@@ -115,10 +119,8 @@ impl MetricsCollector {
       .with_description("Total failed user creations")
       .build();
 
-    let users_login_total = meter
-      .u64_counter("api_users_login")
-      .with_description("Total user logins")
-      .build();
+    let users_login_total =
+      meter.u64_counter("api_users_login").with_description("Total user logins").build();
 
     let users_login_failed = meter
       .u64_counter("api_users_login_failed")
@@ -161,6 +163,15 @@ impl MetricsCollector {
     let users_get_failed = meter
       .u64_counter("api_users_get_failed")
       .with_description("Total failed user retrieval requests")
+      .build();
+
+    // --- Groups Metrics ---
+    let groups_create_total =
+      meter.u64_counter("api_groups_create").with_description("Total group creations").build();
+
+    let groups_create_failed = meter
+      .u64_counter("api_groups_create_failed")
+      .with_description("Total failed group creations")
       .build();
 
     // --- Database Metrics ---
@@ -215,6 +226,8 @@ impl MetricsCollector {
       users_reset_password_failed,
       users_get_total,
       users_get_failed,
+      groups_create_total,
+      groups_create_failed,
       db_operations_total,
       db_operations_failed,
       broker_messages_sent,
@@ -328,6 +341,15 @@ impl MetricsCollector {
   pub fn record_users_reset_password_failure(&self) {
     self.users_reset_password_total.add(1, &[]);
     self.users_reset_password_failed.add(1, &[]);
+  }
+
+  pub fn record_groups_create_success(&self) {
+    self.groups_create_total.add(1, &[]);
+  }
+
+  pub fn record_groups_create_failure(&self) {
+    self.groups_create_total.add(1, &[]);
+    self.groups_create_failed.add(1, &[]);
   }
 
   pub fn record_db_operation(&self, operation: &str) {

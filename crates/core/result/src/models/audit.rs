@@ -16,6 +16,7 @@ pub enum EventName {
   UsersEmailConfirmation,
   UsersForgotPassword,
   UsersResetPassword,
+  GroupsCreate,
 }
 
 #[derive(Serialize, Deserialize, Debug, Display, Clone, PartialEq, Eq)]

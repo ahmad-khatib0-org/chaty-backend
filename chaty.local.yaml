@@ -41,7 +41,7 @@ oauth:
   # Admin endpoint of Hydra authorization server
   admin_url: "http://localhost:4445"
   # Client ID for this application
-  client_id: "d16d53e2-a7d8-448c-8800-572e9658b6f0"
+  client_id: "a52ac7a1-de15-4c7a-823a-56df07e89e50"
   # Client secret for this application
   client_secret: ""
   # Redirect URI after successful authentication
