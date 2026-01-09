@@ -62,6 +62,8 @@ pub struct Topics {
   pub user_created: String,
   pub email_confirmation: String,
   pub email_confirmation_dlq: String,
+  pub search_users_changes: String,
+  pub search_users_changes_dlq: String,
 }
 
 impl Default for Topics {
@@ -72,6 +74,8 @@ impl Default for Topics {
       password_reset_dlq: "api.users.password_reset_dlq".to_string(),
       email_confirmation: "api.users.email_confirmation".to_string(),
       email_confirmation_dlq: "api.users.email_confirmation_dlq".to_string(),
+      search_users_changes: "search.users.changes".to_string(),
+      search_users_changes_dlq: "search.users.changes_dlq".to_string(),
     }
   }
 }
@@ -627,8 +631,11 @@ impl Default for Features {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Search {
   pub host: String,
+  #[serde(default)]
+  pub endpoints: Vec<String>,
   pub api_key: String,
   pub index_usernames: String,
+  pub index_usernames_dlq: String,
   pub request_timeout_seconds: u64,
 }
 
@@ -636,8 +643,10 @@ impl Default for Search {
   fn default() -> Self {
     Self {
       host: "http://localhost:7700".to_string(),
+      endpoints: vec![],
       api_key: String::new(),
       index_usernames: "users".to_string(),
+      index_usernames_dlq: "users_dlq".to_string(),
       request_timeout_seconds: 30,
     }
   }

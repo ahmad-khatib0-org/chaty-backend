@@ -59,14 +59,20 @@ pub async fn search_usernames(
   // Limit results to 5 if not specified or if greater than 5
   let limit = if req.limit <= 0 || req.limit > 5 { 5 } else { req.limit as usize };
 
-  let host = ctr.config.search.host.clone();
   let index_name = ctr.config.search.index_usernames.clone();
   let api_key = ctr.config.search.api_key.clone();
+  
+  // Use endpoints vector if available, otherwise fall back to host
+  let endpoint = if !ctr.config.search.endpoints.is_empty() {
+    ctr.config.search.endpoints[0].clone()
+  } else {
+    ctr.config.search.host.clone()
+  };
 
   let db_start = std::time::Instant::now();
   ctr.metrics.record_db_operation("search_usernames");
 
-  let search_url = format!("{}/indexes/{}/search", host, index_name);
+  let search_url = format!("{}/indexes/{}/search", endpoint, index_name);
 
   let search_payload = json!({ "q": req.query, "limit": limit });
 

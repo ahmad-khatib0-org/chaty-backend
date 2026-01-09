@@ -14,7 +14,10 @@ use hyper::{
   Request, Response, StatusCode,
 };
 use hyper_util::rt::tokio::TokioIo;
-use opentelemetry::metrics::MeterProvider as _;
+use opentelemetry::{
+  metrics::{Counter, Histogram, MeterProvider as _},
+  KeyValue,
+};
 use opentelemetry_sdk::metrics::SdkMeterProvider;
 use prometheus::{Registry, TextEncoder};
 use tokio::{net::TcpListener, spawn};
@@ -24,6 +27,35 @@ pub struct MetricsCollector {
   config: Arc<Settings>,
   registry: Arc<Registry>,
   _provider: Arc<SdkMeterProvider>,
+  // Message processing counters
+  pub messages_processed_total: Counter<u64>,
+  pub messages_failed_total: Counter<u64>,
+  // Meilisearch operation metrics
+  pub meili_indexing_duration_seconds: Histogram<f64>,
+  pub meili_retries_total: Counter<u64>,
+  pub meili_errors_total: Counter<u64>,
+  // Kafka metrics
+  pub kafka_messages_consumed_total: Counter<u64>,
+  pub kafka_consume_errors_total: Counter<u64>,
+  pub kafka_commit_errors_total: Counter<u64>,
+}
+
+impl Clone for MetricsCollector {
+  fn clone(&self) -> Self {
+    Self {
+      config: self.config.clone(),
+      registry: self.registry.clone(),
+      _provider: self._provider.clone(),
+      messages_processed_total: self.messages_processed_total.clone(),
+      messages_failed_total: self.messages_failed_total.clone(),
+      meili_indexing_duration_seconds: self.meili_indexing_duration_seconds.clone(),
+      meili_retries_total: self.meili_retries_total.clone(),
+      meili_errors_total: self.meili_errors_total.clone(),
+      kafka_messages_consumed_total: self.kafka_messages_consumed_total.clone(),
+      kafka_consume_errors_total: self.kafka_consume_errors_total.clone(),
+      kafka_commit_errors_total: self.kafka_commit_errors_total.clone(),
+    }
+  }
 }
 
 impl std::fmt::Debug for MetricsCollector {
@@ -54,10 +86,65 @@ impl MetricsCollector {
 
     // Create meter provider with Prometheus exporter
     let provider = SdkMeterProvider::builder().with_reader(exporter).build();
-    let meter = provider.meter("api-service");
+    let meter = provider.meter("search-worker-service");
     let provider = Arc::new(provider);
 
-    Ok(MetricsCollector { registry: Arc::new(registry), config: args.config, _provider: provider })
+    // --- Message Processing Metrics ---
+    let messages_processed_total = meter
+      .u64_counter("search_worker_messages_processed")
+      .with_description("Total messages processed")
+      .build();
+
+    let messages_failed_total = meter
+      .u64_counter("search_worker_messages_failed")
+      .with_description("Total failed message processing")
+      .build();
+
+    // --- Meilisearch Metrics ---
+    let meili_indexing_duration_seconds = meter
+      .f64_histogram("search_worker_meili_indexing_duration_seconds")
+      .with_description("Meilisearch indexing operation duration in seconds")
+      .build();
+
+    let meili_retries_total = meter
+      .u64_counter("search_worker_meili_retries")
+      .with_description("Total Meilisearch operation retries")
+      .build();
+
+    let meili_errors_total = meter
+      .u64_counter("search_worker_meili_errors")
+      .with_description("Total Meilisearch operation errors")
+      .build();
+
+    // --- Kafka Metrics ---
+    let kafka_messages_consumed_total = meter
+      .u64_counter("search_worker_kafka_messages_consumed")
+      .with_description("Total Kafka messages consumed")
+      .build();
+
+    let kafka_consume_errors_total = meter
+      .u64_counter("search_worker_kafka_consume_errors")
+      .with_description("Total Kafka consumption errors")
+      .build();
+
+    let kafka_commit_errors_total = meter
+      .u64_counter("search_worker_kafka_commit_errors")
+      .with_description("Total Kafka offset commit errors")
+      .build();
+
+    Ok(MetricsCollector {
+      registry: Arc::new(registry),
+      config: args.config,
+      _provider: provider,
+      messages_processed_total,
+      messages_failed_total,
+      meili_indexing_duration_seconds,
+      meili_retries_total,
+      meili_errors_total,
+      kafka_messages_consumed_total,
+      kafka_consume_errors_total,
+      kafka_commit_errors_total,
+    })
   }
   /// Start HTTP server to expose metrics for Prometheus
   pub async fn run(&self) -> Result<(), BoxedErr> {
@@ -65,7 +152,7 @@ impl MetricsCollector {
 
     let listener = TcpListener::bind(&url).await?;
     let addr = listener.local_addr()?;
-    tracing::info!("API Metrics server listening on {}", addr);
+    tracing::info!("Search Worker Metrics server listening on {}", addr);
 
     loop {
       let (socket, _) = listener.accept().await?;
@@ -109,5 +196,58 @@ impl MetricsCollector {
         }
       });
     }
+  }
+
+  pub fn record_message_processed(&self) {
+    self.messages_processed_total.add(1, &[]);
+  }
+
+  pub fn record_message_failed(&self, index: &str) {
+    self.messages_processed_total.add(1, &[]);
+    self.messages_failed_total.add(1, &[KeyValue::new("index", index.to_string())]);
+  }
+
+  pub fn observe_meili_indexing_duration(&self, index: &str, duration_secs: f64) {
+    self
+      .meili_indexing_duration_seconds
+      .record(duration_secs, &[KeyValue::new("index", index.to_string())]);
+  }
+
+  pub fn record_meili_retry(&self, index: &str) {
+    self.meili_retries_total.add(1, &[KeyValue::new("index", index.to_string())]);
+  }
+
+  pub fn record_meili_error(&self, index: &str, error: &str) {
+    self.meili_errors_total.add(
+      1,
+      &[
+        KeyValue::new("index", index.to_string()),
+        KeyValue::new("error", error.to_string()),
+      ],
+    );
+  }
+
+  pub fn record_kafka_message_consumed(&self, topic: &str) {
+    self.kafka_messages_consumed_total.add(1, &[KeyValue::new("topic", topic.to_string())]);
+  }
+
+  pub fn record_kafka_consume_error(&self, topic: &str, error: &str) {
+    self.kafka_consume_errors_total.add(
+      1,
+      &[
+        KeyValue::new("topic", topic.to_string()),
+        KeyValue::new("error", error.to_string()),
+      ],
+    );
+  }
+
+  pub fn record_kafka_commit_error(&self, topic: &str, partition: i32) {
+    self.kafka_commit_errors_total.add(
+      1,
+      &[
+        KeyValue::new("topic", topic.to_string()),
+        KeyValue::new("partition", partition.to_string()),
+      ],
+    );
   }
 }

@@ -34,6 +34,8 @@ topics:
   password_reset: "api.users.password_reset"
   password_reset_dlq: api.users.password_reset_dlq
   user_created: "api.users.user_created"
+  search_users_changes: "search.users.changes"
+  search_users_changes_dlq: "search.users.changes_dlq"
 # OAuth 2.0 / OpenID Connect configuration (Hydra)
 oauth:
   # Public endpoint of Hydra authorization server
@@ -320,6 +322,7 @@ search:
   host: "http://localhost:7700"
   api_key: "meilisearch-local-key"
   index_usernames: "users"
+  index_usernames_dlq: "users_dlq"
   request_timeout_seconds: 30
 # Sentry error reporting configuration
 sentry:
