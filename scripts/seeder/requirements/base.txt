@@ -1,0 +1,8 @@
+Faker
+psycopg2-binary
+pydantic
+pyyaml
+python-ulid
+bcrypt
+ulid
+minio
