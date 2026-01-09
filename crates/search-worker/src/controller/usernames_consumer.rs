@@ -115,6 +115,7 @@ impl SearchWorkerController {
       }
     };
 
+    info!("Starting usernames consumption loop for topic '{}'", &config.topics.search_users_changes);
     loop {
       select! {
         _ = shutdown_notify.notified() => {
@@ -196,6 +197,7 @@ impl SearchWorkerController {
                     Ok(()) => {
                       Self::mark_offset_processed(&highest, key_topic.clone(), key_partition, key_offset).await;
                       metrics_clone.record_message_processed();
+                      debug!("Successfully processed message {}[{}] @ {}", key_topic, key_partition, key_offset);
                     }
                     Err(err) => {
                       error!(

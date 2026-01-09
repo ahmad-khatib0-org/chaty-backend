@@ -6,7 +6,7 @@ use std::{
 use chaty_result::errors::{BoxedErr, ErrorType, InternalError};
 use reqwest::Client;
 use tokio::time::sleep;
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::{
   models::tasks::{Task, TaskStatus},
@@ -30,8 +30,9 @@ pub async fn poll_task_until_complete(
 
   let url = format!("{}/tasks/{}", endpoint, task_uid);
   let poll_interval = Duration::from_millis(200);
-  let max_wait = Duration::from_secs(30);
+  let max_wait = Duration::from_secs(15);  // Reduced from 30s for faster failure detection
   let mut waited = Duration::ZERO;
+  debug!("Starting task poll for task_uid={}", task_uid);
 
   loop {
     if waited >= max_wait {
@@ -56,14 +57,16 @@ pub async fn poll_task_until_complete(
     }
 
     let task: Task = res
-      .json()
-      .await
-      .map_err(|err| Box::new(ie(Box::new(err), "failed to parse task response")))?;
+       .json()
+       .await
+       .map_err(|err| Box::new(ie(Box::new(err), "failed to parse task response")))?;
 
-    match task.status {
-      TaskStatus::Succeeded => {
-        return Ok(());
-      }
+     debug!("Task {} status: {:?}", task_uid, task.status);
+     match task.status {
+       TaskStatus::Succeeded => {
+         debug!("Task {} succeeded", task_uid);
+         return Ok(());
+       }
       TaskStatus::Failed => {
         let error_msg =
           task.error.map(|e| e.message).unwrap_or_else(|| "unknown error".to_string());

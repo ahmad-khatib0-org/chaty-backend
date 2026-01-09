@@ -13,4 +13,4 @@
 -- - Only table changes are emitted, not schema changes
 -- - When running in Docker, use redpanda:9092 (internal network) not localhost:9092
 CREATE CHANGEFEED FOR TABLE users INTO 'kafka://redpanda:9092?topic_name=search.users.changes'
-WITH resolved = '5s', format = 'json';
+WITH resolved = '5s', format = 'json', initial_scan = 'yes';
