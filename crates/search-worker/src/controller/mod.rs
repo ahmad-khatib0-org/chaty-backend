@@ -8,23 +8,26 @@ mod usernames_task_processor;
 
 use std::{
   collections::HashMap,
+  io::{Error, ErrorKind},
   sync::{atomic::AtomicBool, Arc},
   time::Duration,
 };
 
 use chaty_config::Settings;
 use chaty_database::DatabaseSql;
-use chaty_result::errors::BoxedErr;
+use chaty_result::errors::{BoxedErr, ErrorType, InternalError};
 use rdkafka::{
   consumer::{Consumer, StreamConsumer},
   producer::FutureProducer,
   ClientConfig,
 };
 use reqwest::Client;
+use serde_json::json;
 use tokio::{
   sync::{watch, Mutex, Notify, Semaphore},
   task::JoinSet,
 };
+use tracing::info;
 
 use crate::server::observability::MetricsCollector;
 
@@ -93,7 +96,8 @@ impl SearchWorkerController {
 
     // Initialize topic to consumer mapping
     let mut topic_to_consumer_map = HashMap::new();
-    topic_to_consumer_map.insert(config.topics.search_users_changes.clone(), "usernames".to_string());
+    topic_to_consumer_map
+      .insert(config.topics.search_users_changes.clone(), "usernames".to_string());
 
     let producer: Arc<FutureProducer> = Arc::new(
       ClientConfig::new()
@@ -129,7 +133,10 @@ impl SearchWorkerController {
   /// Run the search worker controller
   /// This function blocks and coordinates all search worker operations
   pub async fn run(self) -> Result<(), BoxedErr> {
-    tracing::info!("Starting search worker controller");
+    info!("Starting search worker controller");
+
+    // Setup Meilisearch indexes
+    self.indexes_setup().await?;
 
     // Start shutdown listener
     self.shutdown_listener();
@@ -143,7 +150,57 @@ impl SearchWorkerController {
     // Gracefully shutdown consumer
     self.consumer_shutdown().await;
 
-    tracing::info!("Search worker controller shutdown complete");
+    info!("Search worker controller shutdown complete");
+    Ok(())
+  }
+
+  /// Setup Meilisearch indexes before consuming messages
+  async fn indexes_setup(&self) -> Result<(), BoxedErr> {
+    info!("Setting up Meilisearch indexes");
+
+    let index_names =
+      vec![&self.config.search.index_usernames, &self.config.search.index_usernames_dlq];
+
+    for idx_name in index_names.iter() {
+      self.ensure_index_exists(&idx_name).await?;
+    }
+
+    info!("Meilisearch indexes setup complete");
+    Ok(())
+  }
+
+  /// Ensure Meilisearch index exists
+  async fn ensure_index_exists(&self, index_name: &str) -> Result<(), BoxedErr> {
+    let ie = |err: BoxedErr, msg: &str| {
+      let path = "search-worker.controller.ensure_index_exists".into();
+      let err_type = ErrorType::InternalError;
+      InternalError { err_type, temp: false, err, msg: msg.into(), path }
+    };
+
+    let url = format!("{}/indexes", self.config.search.host.clone());
+    let payload = json!({ "uid": index_name, "primaryKey": "id" });
+
+    let mut req = self.http_client.post(&url).json(&payload);
+
+    let api_key = self.config.search.api_key.clone();
+    if !api_key.is_empty() {
+      req = req.bearer_auth(api_key);
+    }
+
+    let resp = req
+      .send()
+      .await
+      .map_err(|e| Box::new(ie(Box::new(e), "failed to send create index request")) as BoxedErr)?;
+
+    let status = resp.status();
+    // 202 = accepted (created)
+    if !status.is_success() {
+      let txt = resp.text().await.unwrap_or_default();
+      let err = Box::new(Error::new(ErrorKind::Other, "meilisearch_error"));
+      let msg = &format!("create index failed: status={}, body={}", status, txt);
+      return Err(Box::new(ie(err, msg)));
+    }
+
     Ok(())
   }
 }

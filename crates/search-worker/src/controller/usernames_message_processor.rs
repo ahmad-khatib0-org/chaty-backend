@@ -33,7 +33,9 @@ pub async fn usernames_message_processor(
 
   // Parse the CDC message
   let cdc_message: UserCDCMessage = serde_json::from_str(payload).map_err(|err| {
-    Box::new(ie(Box::new(err), "failed to deserialize user CDC message")) as BoxedErr
+    error!("Raw CDC message payload: {}", payload);
+    let e = err.to_string();
+    Box::new(ie(Box::new(err), &format!("failed to deserialize user CDC message: {}", e)))
   })?;
 
   // Skip resolved markers (CockroachDB heartbeat messages)
@@ -75,12 +77,12 @@ pub async fn usernames_message_processor(
     }
     // Delete: after is None, before exists
     (None, Some(before)) => {
+      let id = before.id.clone();
+
       let mut tries = 0;
       loop {
         tries += 1;
-        match delete_user_from_meili(&before.id, http, endpoints, index_name, api_key, metrics)
-          .await
-        {
+        match delete_user_from_meili(&id, http, endpoints, index_name, api_key, metrics).await {
           Ok(()) => return Ok(()),
           Err(err) => {
             if tries >= max_retries {

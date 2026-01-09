@@ -1,25 +1,19 @@
-use serde_json::Value;
-
-/// Represents a user CDC message from CockroachDB
+/// User record from CDC changefeed
 #[derive(Debug, Clone, serde::Deserialize)]
-pub struct UserCDCMessage {
-  /// The key (always user_id)
-  pub key: Vec<Value>,
-  /// The after state of the document
-  pub after: Option<UserDocument>,
-  /// The before state of the document (for deletes)
-  pub before: Option<UserDocument>,
-  /// Resolved timestamp (null for regular events)
-  pub resolved: Option<String>,
-}
-
-/// User document fields for indexing
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct UserDocument {
+pub struct UserRecord {
   pub id: String,
   pub username: String,
-  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
   pub display_name: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default)]
   pub profile_background_id: Option<String>,
+}
+
+/// Represents a user CDC message from CockroachDB changefeed
+/// Format: {after?, before?, resolved?}
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct UserCDCMessage {
+  pub after: Option<UserRecord>,
+  pub before: Option<UserRecord>,
+  pub resolved: Option<String>,
 }

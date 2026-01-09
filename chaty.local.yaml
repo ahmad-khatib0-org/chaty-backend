@@ -43,7 +43,7 @@ oauth:
   # Admin endpoint of Hydra authorization server
   admin_url: "http://localhost:4445"
   # Client ID for this application
-  client_id: "a52ac7a1-de15-4c7a-823a-56df07e89e50"
+  client_id: "6d797568-5bc1-4631-a6e0-d1f9a8dea7ec"
   # Client secret for this application
   client_secret: ""
   # Redirect URI after successful authentication
@@ -320,7 +320,7 @@ features:
 # Meilisearch configuration
 search:
   host: "http://localhost:7700"
-  api_key: "meilisearch-local-key"
+  api_key: "meilisearch-secret-key"
   index_usernames: "users"
   index_usernames_dlq: "users_dlq"
   request_timeout_seconds: 30
