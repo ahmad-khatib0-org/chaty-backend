@@ -45,6 +45,8 @@ pub(crate) struct SearchWorkerController {
   pub(super) http_client: Arc<Client>,
   // Support multiple consumers: HashMap<name, consumer>
   pub(crate) consumers: Arc<Mutex<HashMap<String, Arc<StreamConsumer>>>>,
+  // Topic to consumer mapping: HashMap<topic, consumer_name>
+  pub(crate) topic_to_consumer: Arc<Mutex<HashMap<String, String>>>,
   pub(crate) producer: Arc<FutureProducer>,
   // Shutdown coordination
   pub(crate) shutdown_notify: Arc<Notify>,
@@ -89,6 +91,10 @@ impl SearchWorkerController {
     let mut consumers_map = HashMap::new();
     consumers_map.insert("usernames".to_string(), usernames_consumer);
 
+    // Initialize topic to consumer mapping
+    let mut topic_to_consumer_map = HashMap::new();
+    topic_to_consumer_map.insert(config.topics.search_users_changes.clone(), "usernames".to_string());
+
     let producer: Arc<FutureProducer> = Arc::new(
       ClientConfig::new()
         .set("bootstrap.servers", config.kafka.brokers.join(","))
@@ -109,6 +115,7 @@ impl SearchWorkerController {
       metrics: args.metrics,
       http_client: Arc::new(http_client),
       consumers: Arc::new(Mutex::new(consumers_map)),
+      topic_to_consumer: Arc::new(Mutex::new(topic_to_consumer_map)),
       producer,
       shutdown_notify,
       tx_metrics_shutdown,

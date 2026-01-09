@@ -14,6 +14,7 @@ impl SearchWorkerController {
   pub fn periodic_commit(&self) {
     let highest = self.highest_offset.clone();
     let consumers = self.consumers.clone();
+    let topic_to_consumer = self.topic_to_consumer.clone();
     let commit_interval_ms = 1000u64;
 
     spawn(async move {
@@ -41,43 +42,67 @@ impl SearchWorkerController {
         }
 
         // Commit offsets for each topic using the appropriate consumer
+        let topic_to_consumer_guard = topic_to_consumer.lock().await;
         let consumers_guard = consumers.lock().await;
-        for (topic, offsets) in offsets_by_topic {
-          // Try to find a consumer that is subscribed to this topic
-          // For simplicity, we'll commit to any consumer that has this topic
-          for (_consumer_name, consumer) in consumers_guard.iter() {
-            let mut tpl = TopicPartitionList::new();
-            for ((_t, partition), offset) in offsets.iter() {
-              let commit_off = Offset::from_raw(*offset + 1);
-              let _ = tpl.add_partition_offset(&topic, *partition, commit_off);
-            }
 
-            if tpl.count() > 0 {
-              match consumer.commit(&tpl, CommitMode::Async) {
-                Ok(_) => {
-                  debug!(
-                    "Periodic batched commit dispatched for {} to topic {}",
-                    tpl.count(),
-                    topic
-                  );
-                  break; // Committed successfully, move to next topic
+        for (topic, offsets) in offsets_by_topic {
+          // Look up which consumer is responsible for this topic
+          match topic_to_consumer_guard.get(&topic) {
+            Some(consumer_name) => {
+              if let Some(consumer) = consumers_guard.get(consumer_name) {
+                let mut tpl = TopicPartitionList::new();
+                for ((_t, partition), offset) in offsets.iter() {
+                  let commit_off = Offset::from_raw(*offset + 1);
+                  let _ = tpl.add_partition_offset(&topic, *partition, commit_off);
                 }
-                Err(err) => {
-                  error!("Periodic commit error for topic {}: {} — will retry", topic, err);
-                  // Re-merge the snapshot back into highest map, keeping max offsets
-                  let mut guard = highest.lock().await;
-                  for ((t, p), offset) in offsets.iter() {
-                    let prev = guard.get(&(t.clone(), *p)).copied().unwrap_or(-1);
-                    if *offset > prev {
-                      guard.insert((t.clone(), *p), *offset);
+
+                if tpl.count() > 0 {
+                  match consumer.commit(&tpl, CommitMode::Async) {
+                    Ok(_) => {
+                      debug!(
+                        "Periodic batched commit dispatched for {} offsets from topic {} using consumer '{}'",
+                        tpl.count(),
+                        topic,
+                        consumer_name
+                      );
+                    }
+                    Err(err) => {
+                      error!(
+                        "Periodic commit error for topic {} on consumer '{}': {} — will retry",
+                        topic, consumer_name, err
+                      );
+                      // Re-merge the snapshot back into highest map, keeping max offsets
+                      let mut guard = highest.lock().await;
+                      for ((t, p), offset) in offsets.iter() {
+                        let prev = guard.get(&(t.clone(), *p)).copied().unwrap_or(-1);
+                        if *offset > prev {
+                          guard.insert((t.clone(), *p), *offset);
+                        }
+                      }
                     }
                   }
-                  break; // Move to next topic after error
+                }
+              } else {
+                error!(
+                  "Consumer '{}' for topic '{}' not found in consumers map",
+                  consumer_name, topic
+                );
+                // Re-merge offsets back
+                let mut guard = highest.lock().await;
+                for ((t, p), offset) in offsets.iter() {
+                  let prev = guard.get(&(t.clone(), *p)).copied().unwrap_or(-1);
+                  if *offset > prev {
+                    guard.insert((t.clone(), *p), *offset);
+                  }
                 }
               }
             }
+            None => {
+              error!("No consumer mapping found for topic '{}'. Dropping offsets.", topic);
+            }
           }
         }
+        drop(topic_to_consumer_guard);
         drop(consumers_guard);
       }
     });

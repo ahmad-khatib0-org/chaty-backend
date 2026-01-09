@@ -21,9 +21,10 @@ docker compose exec -T cockroachdb ./cockroach sql --insecure --user=root <<EOF
   CREATE USER IF NOT EXISTS chaty;
   CREATE DATABASE IF NOT EXISTS chaty;
   GRANT ALL ON DATABASE chaty TO chaty;
+  SET CLUSTER SETTING kv.rangefeed.enabled = true;
 EOF
 
-echo "✓ CockroachDB database and user created"
+echo "✓ CockroachDB database, user created, and rangefeed enabled"
 
 # 2. Initialize ScyllaDB (NoSQL)
 echo ">>> Step 2: Initializing ScyllaDB keyspace..."

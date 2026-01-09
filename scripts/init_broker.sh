@@ -23,6 +23,8 @@ TOPICS=(
   "api.users.password_reset"
   "api.users.password_reset_dlq"
   "api.users.user_created"
+  "search.users.changes"
+  "search.users.changes_dlq"
 )
 
 for topic in "${TOPICS[@]}"; do

@@ -1,0 +1,26 @@
+-- Drop the changefeed for the users table
+--
+-- Note: We need to know the changefeed job ID to drop it.
+-- After running the up migration, CockroachDB will output the job_id.
+--
+-- Run: CANCEL JOB <job_id>; to stop the changefeed
+-- Or use: SELECT * FROM system.jobs WHERE job_type = 'CHANGEFEED' AND table_name LIKE
+-- '%users%';
+-- to find active changefeeds and then cancel them.
+--
+-- This down migration attempts to clean up by canceling any active changefeeds
+-- watching the users table, but it may not work if there are no jobs to cancel.
+-- If you need to stop the changefeed, use the job_id from the up migration:
+-- CANCEL JOB <job_id>;
+--
+-- Attempt to cancel any active changefeed jobs for users table
+-- This query won't work in migration context, so we'll leave it as a comment
+-- for manual execution if needed.
+--
+-- SELECT cancel_job(job_id) FROM system.jobs 
+-- WHERE job_type = 'CHANGEFEED' 
+-- AND (description LIKE '%users%' OR description LIKE '%search.users.changes%');
+--
+-- Since we can't reliably drop the changefeed in a migration, we leave this as a note:
+-- To fully revert CDC, manually run in the SQL client with the job ID:
+-- CANCEL JOB <job_id_from_up_migration>;
