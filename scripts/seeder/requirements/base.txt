@@ -6,3 +6,4 @@ python-ulid
 bcrypt
 ulid
 minio
+argon2

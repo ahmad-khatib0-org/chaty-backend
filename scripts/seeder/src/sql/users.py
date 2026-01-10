@@ -1,11 +1,10 @@
-import bcrypt
 from faker import Faker
 from psycopg2.extensions import connection
 from ulid import ULID
 
 from models.config import Config
 from models.settings import NUMBER_OF_USERS
-from shared.app import get_time_miliseconds
+from shared.app import generate_argon2_hash, get_time_miliseconds
 
 
 def seed_users_table(con: connection, cfg: Config):
@@ -54,8 +53,7 @@ def seed_users_table(con: connection, cfg: Config):
         used_emails.add(email)
         break
 
-    password = "password123"
-    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    password_hash = generate_argon2_hash("password123")
 
     display_name = fake.name()
     badges = fake.random_int(min=0, max=5)
