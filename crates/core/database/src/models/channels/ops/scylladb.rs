@@ -7,6 +7,8 @@ use chaty_result::{
   errors::{DBError, ErrorType},
 };
 
+use scylla::value::CqlTimestamp;
+
 use crate::{ChannelsRepository, ScyllaDb};
 
 #[async_trait()]
@@ -31,9 +33,8 @@ impl ChannelsRepository for ScyllaDb {
       }
     };
 
-    // Convert timestamps from prost Timestamp to i64 (milliseconds since epoch)
-    let created_at = channel.created_at.as_ref().map(|ts| ts.seconds * 1000);
-    let updated_at = channel.updated_at.as_ref().map(|ts| ts.seconds * 1000);
+    let created_at = channel.created_at.as_ref().map(|ts| CqlTimestamp(ts.seconds * 1000));
+    let updated_at = channel.updated_at.as_ref().map(|ts| CqlTimestamp(ts.seconds * 1000));
 
     let query =
       "INSERT INTO channels (id, channel_type, group, created_at, updated_at) VALUES (?, ?, ?, ?, ?)";

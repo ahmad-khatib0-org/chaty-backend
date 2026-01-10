@@ -30,7 +30,7 @@ static_resources:
                               allow_origin_string_match:
                                 - exact: "http://localhost:3000"
                               allow_methods: "POST,GET,DELETE,PUT,OPTIONS"
-                              allow_headers: "Content-Type,Authorization"
+                              allow_headers: "Content-Type,Authorization,Cookie"
                               expose_headers: "X-Request-ID"
                               max_age: "3600s"
                               allow_credentials: false
@@ -54,7 +54,7 @@ static_resources:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
                       providers:
                         hydra_jwt:
-                          issuer: "http://hydra:4444/"
+                          issuer: "http://localhost:4444/"
                           audiences: ["chaty"]
                           remote_jwks:
                             http_uri:
@@ -136,7 +136,7 @@ static_resources:
                                 - exact: "http://localhost:3000"
                                 - exact: "http://localhost:3001"
                               allow_methods: "GET,POST,DELETE,PUT,OPTIONS"
-                              allow_headers: "Content-Type,Authorization,Origin,connect-protocol-version,x-request-id,x-ip-address,x-timezone,accept-language,user-agent,x-grpc-web,connect-timeout-ms"
+                              allow_headers: "Content-Type,Authorization,Cookie,Origin,connect-protocol-version,x-request-id,x-ip-address,x-timezone,accept-language,user-agent,x-grpc-web,connect-timeout-ms"
                               expose_headers: "X-Request-ID,Grpc-Status,Grpc-Message"
                               max_age: "3600s"
                               allow_credentials: true
@@ -160,7 +160,7 @@ static_resources:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
                       providers:
                         hydra_jwt:
-                          issuer: "http://hydra:4444/"
+                          issuer: "http://localhost:4444/"
                           audiences: ["chaty"]
                           remote_jwks:
                             http_uri:

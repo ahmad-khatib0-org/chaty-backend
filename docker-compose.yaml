@@ -30,6 +30,28 @@ services:
     #       cpus: "1.0"
 
   # ============================================================================
+  # ScyllaDB Admin UI
+  # ============================================================================
+  scylla-manager:
+    image: scylladb/scylla-manager:latest
+    container_name: scylla-manager
+    restart: unless-stopped
+    networks:
+      - chaty-dev
+    ports:
+      - "55555:55555"
+    depends_on:
+      scylladb:
+        condition: service_healthy
+    environment:
+      SCYLLA_MANAGER_API_SERVER: "0.0.0.0:55555"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ============================================================================
   # Database - CockroachDB
   # ============================================================================
   cockroachdb:
