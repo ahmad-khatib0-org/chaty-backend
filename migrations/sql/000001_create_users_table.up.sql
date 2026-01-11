@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name VARCHAR(64),
   badges INT DEFAULT 0,
   status_text VARCHAR(510),
-  status_presence VARCHAR(32) DEFAULT 'USER_STATUS_ONLINE',
+  status_presence VARCHAR(32) DEFAULT 'online',
   profile_content TEXT,
   profile_background_id VARCHAR(26),
   privileged BOOLEAN DEFAULT FALSE,

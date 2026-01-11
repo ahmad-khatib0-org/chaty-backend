@@ -1,4 +1,5 @@
 mod channels;
+mod files;
 mod users;
 
 pub use channels::*;

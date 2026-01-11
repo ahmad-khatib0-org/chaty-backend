@@ -64,6 +64,18 @@
     "tr": "Authentication required. Please log in and try again."
   },
   {
+    "id": "request.pagination.invalid",
+    "tr": "The request listing pagination is missing or invalid!"
+  },
+  {
+    "id": "request.last_id.missing",
+    "tr": "the request last id is missing"
+  },
+  {
+    "id": "request.last_id.invalid",
+    "tr": "the request last id is invalid"
+  },
+  {
     "id": "users.login.error",
     "tr": "An error occurred during authentication."
   },
@@ -358,5 +370,10 @@
   {
     "id": "search.search_usernames.invalid_limit",
     "tr": "Search limit must be between 1 and 5"
+  }
+,
+  {
+    "id": "groups.list.success",
+    "tr": "Groups retrieved successfully"
   }
 ]

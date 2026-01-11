@@ -67,8 +67,6 @@ impl DatabaseInfoNoSql {
             )
             .await
           }
-          #[cfg(not(feature = "scylladb"))]
-          return Err("scylladb not enabled.".to_string());
         } else {
           boxed(DatabaseInfoNoSql::Reference.connect()).await
         }
@@ -91,8 +89,6 @@ impl DatabaseInfoNoSql {
               )
               .await
             }
-            #[cfg(not(feature = "scylladb"))]
-            return Err("scylladb not enabled.".to_string());
           }
           _ => unreachable!("must specify REFERENCE or SCYLLADB"),
         }
@@ -113,7 +109,68 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to use keyspace: {}", e))?;
 
-        Ok(DatabaseNoSql::Scylladb(ScyllaDb(session)))
+        let insert_channel = session
+          .prepare(
+            r#" 
+              INSERT INTO channels (
+                id, channel_type, "group", created_at, updated_at
+              ) 
+              VALUES (?, ?, ?, ?, ?)
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare insert_channel statment: {}", e))?;
+
+        let insert_channel_by_user = session
+          .prepare(
+            r#"
+              INSERT INTO channels_by_user (
+                user_id, channel_id, channel_type, "group", created_at, updated_at
+              ) 
+              VALUES (?, ?, ?, ?, ?, ?)
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare insert_channel_by_user statment: {}", e))?;
+
+        let groups_list_first_page = session
+          .prepare(
+            r#"
+                SELECT channel_id, "group", created_at 
+                FROM channels_by_user 
+                WHERE user_id = ? 
+                ORDER BY channel_id DESC 
+                LIMIT ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare groups_list_first_page statment: {}", e))?;
+
+        // With last_id: Gets groups older than the last one received
+        let groups_list_next_page = session
+          .prepare(
+            r#"
+                SELECT channel_id, "group", created_at 
+                FROM channels_by_user 
+                WHERE user_id = ? AND channel_id < ? 
+                ORDER BY channel_id DESC 
+                LIMIT ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare groups_list_next_page statment: {}", e))?;
+
+        Ok(DatabaseNoSql::Scylladb(ScyllaDb {
+          db: session,
+          prepared: Prepared {
+            channels: PreparedChannels {
+              insert_channel,
+              insert_channel_by_user,
+              groups_list_first_page,
+              groups_list_next_page,
+            },
+          },
+        }))
       }
       DatabaseInfoNoSql::Reference => Ok(DatabaseNoSql::Reference(Default::default())),
     }

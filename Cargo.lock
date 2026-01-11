@@ -604,9 +604,9 @@ dependencies = [
 
 [[package]]
 name = "chaty-proto"
-version = "0.1.36"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47d1e80ffa99586fc09e50bc96bf470c323ce64e664e85cd42e4d49e42caf58c"
+checksum = "c6989e78e1ac7c68b46583e8269ec462233133938153d923d25e450cfeedda74"
 dependencies = [
  "prost 0.13.5",
  "prost-types",
@@ -626,6 +626,7 @@ dependencies = [
  "tera",
  "thiserror 2.0.17",
  "tonic",
+ "ulid",
 ]
 
 [[package]]
