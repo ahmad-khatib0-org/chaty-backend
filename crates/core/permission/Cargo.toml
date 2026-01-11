@@ -1,0 +1,13 @@
+[package]
+name = "chaty-permission"
+version = "0.1.3"
+edition = "2024"
+license = "MIT"
+authors = ["Ahmad Khatib <ahmadkhatib923@gmail.com>"]
+description = "Chaty Backend: Permission logic and helpers"
+
+[features]
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
