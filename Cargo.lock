@@ -606,6 +606,7 @@ dependencies = [
 name = "chaty-permission"
 version = "0.1.3"
 dependencies = [
+ "once_cell",
  "serde",
 ]
 

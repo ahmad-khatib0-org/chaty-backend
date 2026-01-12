@@ -1,4 +1,6 @@
-use std::{fmt, ops};
+use std::{fmt, ops::Add};
+
+use once_cell::sync::Lazy;
 
 /// Permission value on Chaty Channel
 ///
@@ -101,6 +103,43 @@ pub enum ChannelPermission {
   GrantAll = u64::MAX,
 }
 
+pub static ALLOW_IN_TIMEOUT: Lazy<u64> =
+  Lazy::new(|| ChannelPermission::ViewChannel + ChannelPermission::ReadMessageHistory);
+
+pub static DEFAULT_PERMISSION_VIEW_ONLY: Lazy<u64> =
+  Lazy::new(|| ChannelPermission::ViewChannel + ChannelPermission::ReadMessageHistory);
+
+pub static DEFAULT_PERMISSION: Lazy<u64> = Lazy::new(|| {
+  DEFAULT_PERMISSION_VIEW_ONLY.add(
+    ChannelPermission::SendMessage
+      + ChannelPermission::InviteOthers
+      + ChannelPermission::SendEmbeds
+      + ChannelPermission::UploadFiles
+      + ChannelPermission::Connect
+      + ChannelPermission::Speak
+      + ChannelPermission::Listen
+      + ChannelPermission::Video,
+  )
+});
+
+pub static DEFAULT_PERMISSION_SAVED_MESSAGES: u64 = ChannelPermission::GrantAllSafe as u64;
+
+pub static DEFAULT_PERMISSION_DIRECT_MESSAGE: Lazy<u64> =
+  Lazy::new(|| DEFAULT_PERMISSION.add(ChannelPermission::ManageChannel + ChannelPermission::React));
+
+pub static DEFAULT_PERMISSION_SERVER: Lazy<u64> = Lazy::new(|| {
+  DEFAULT_PERMISSION.add(
+    ChannelPermission::React + ChannelPermission::ChangeNickname + ChannelPermission::ChangeAvatar,
+  )
+});
+
+pub static DEFAULT_WEBHOOK_PERMISSIONS: Lazy<u64> = Lazy::new(|| {
+  ChannelPermission::SendMessage
+    + ChannelPermission::SendEmbeds
+    + ChannelPermission::Masquerade
+    + ChannelPermission::React
+});
+
 impl fmt::Display for ChannelPermission {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     fmt::Debug::fmt(self, f)
@@ -108,7 +147,7 @@ impl fmt::Display for ChannelPermission {
 }
 
 /// ChannelPermission + ChannelPermission -> u64
-impl ops::Add for ChannelPermission {
+impl Add for ChannelPermission {
   type Output = u64;
 
   fn add(self, rhs: ChannelPermission) -> u64 {
@@ -117,7 +156,7 @@ impl ops::Add for ChannelPermission {
 }
 
 /// &ChannelPermission + &ChannelPermission -> u64
-impl ops::Add for &ChannelPermission {
+impl Add for &ChannelPermission {
   type Output = u64;
 
   fn add(self, rhs: &ChannelPermission) -> u64 {
@@ -126,7 +165,7 @@ impl ops::Add for &ChannelPermission {
 }
 
 /// u64 + ChannelPermission -> u64 (commutative part 1)
-impl ops::Add<ChannelPermission> for u64 {
+impl Add<ChannelPermission> for u64 {
   type Output = u64;
 
   fn add(self, rhs: ChannelPermission) -> u64 {
@@ -135,7 +174,7 @@ impl ops::Add<ChannelPermission> for u64 {
 }
 
 /// ChannelPermission + u64 -> u64 (commutative part 2)
-impl ops::Add<u64> for ChannelPermission {
+impl Add<u64> for ChannelPermission {
   type Output = u64;
 
   fn add(self, rhs: u64) -> u64 {
@@ -144,7 +183,7 @@ impl ops::Add<u64> for ChannelPermission {
 }
 
 /// u64 + &ChannelPermission -> u64
-impl ops::Add<&ChannelPermission> for u64 {
+impl Add<&ChannelPermission> for u64 {
   type Output = u64;
 
   fn add(self, rhs: &ChannelPermission) -> u64 {
@@ -153,7 +192,7 @@ impl ops::Add<&ChannelPermission> for u64 {
 }
 
 /// &ChannelPermission + u64 -> u64
-impl ops::Add<u64> for &ChannelPermission {
+impl Add<u64> for &ChannelPermission {
   type Output = u64;
 
   fn add(self, rhs: u64) -> u64 {
