@@ -112,9 +112,11 @@ pub enum ChannelPermission {
   GrantAll = u64::MAX,
 }
 
+/// The permissions allowed for a timed out user in a server
 pub static ALLOW_IN_TIMEOUT: Lazy<u64> =
   Lazy::new(|| ChannelPermission::ViewChannel + ChannelPermission::ReadMessageHistory);
 
+/// Default permissions for view only
 pub static DEFAULT_PERMISSION_VIEW_ONLY: Lazy<u64> =
   Lazy::new(|| ChannelPermission::ViewChannel + ChannelPermission::ReadMessageHistory);
 
