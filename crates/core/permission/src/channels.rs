@@ -2,6 +2,15 @@ use std::{fmt, ops::Add};
 
 use once_cell::sync::Lazy;
 
+/// Existing channel type
+pub enum ChannelType {
+  SavedMessages,
+  DirectMessage,
+  Group,
+  ServerChannel,
+  Unknown,
+}
+
 /// Permission value on Chaty Channel
 ///
 /// This should be restricted to the lower 52 bits to prevent any
