@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   display_name VARCHAR(64),
+  avatar JSONB,
+  relations JSONB,
   badges INT DEFAULT 0,
   status_text VARCHAR(510),
   status_presence VARCHAR(32) DEFAULT 'online',

@@ -1,0 +1,1 @@
+DROP TYPE IF EXISTS message_system_channel_ownership_changed_type;
