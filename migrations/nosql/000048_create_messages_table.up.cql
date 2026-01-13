@@ -42,8 +42,6 @@ CREATE TABLE IF NOT EXISTS messages (
   edited_at timestamp, 
   -- When message was created (ULID timestamp)
   created_at timestamp, 
-  -- Last update time
-  updated_at timestamp, 
-  
+    
   PRIMARY KEY ((channel_id), id)
 ) WITH CLUSTERING ORDER BY (id DESC);

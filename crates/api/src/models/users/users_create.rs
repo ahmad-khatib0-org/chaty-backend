@@ -112,6 +112,7 @@ pub async fn users_create_pre_save(
     created_at: now_millis as i64,
     updated_at: now_millis as i64,
     verified: false,
+    ..Default::default()
   })
 }
 

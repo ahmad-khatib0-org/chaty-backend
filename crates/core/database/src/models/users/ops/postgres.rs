@@ -94,6 +94,7 @@ impl UsersRepository for PostgresDb {
         created_at: r.created_at,
         updated_at: r.updated_at,
         verified: r.verified.unwrap_or_default(),
+        ..Default::default()
       }),
       Ok(None) => {
         let msg = "user not found".to_string();
@@ -140,6 +141,7 @@ impl UsersRepository for PostgresDb {
         created_at: r.created_at,
         updated_at: r.updated_at,
         verified: r.verified.unwrap_or_default(),
+        ..Default::default()
       }),
       Ok(None) => {
         let msg = "user not found".to_string();

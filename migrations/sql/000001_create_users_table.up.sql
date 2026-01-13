@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name VARCHAR(64),
   avatar JSONB,
   relations JSONB,
+  bot JSONB,
   badges INT DEFAULT 0,
   status_text VARCHAR(510),
   status_presence VARCHAR(32) DEFAULT 'online',
