@@ -1,8 +1,10 @@
 mod channels;
 mod files;
+mod serve_members;
 mod users;
 
 pub use channels::*;
+pub use serve_members::*;
 pub use users::*;
 
 #[cfg(feature = "postgres")]
@@ -13,7 +15,10 @@ use crate::{DatabaseSql, ReferenceSqlDb};
 
 pub trait AbstractDatabaseSql: Sync + Send + UsersRepository {}
 
-pub trait AbstractDatabaseNoSql: Sync + Send + ChannelsRepository {}
+pub trait AbstractDatabaseNoSql:
+  Sync + Send + ChannelsRepository + ServerMembersRepository
+{
+}
 
 impl AbstractDatabaseNoSql for ReferenceNoSqlDb {}
 impl AbstractDatabaseSql for ReferenceSqlDb {}

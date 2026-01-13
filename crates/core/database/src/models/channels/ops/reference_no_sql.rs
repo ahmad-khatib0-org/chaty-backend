@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use async_trait::async_trait;
 use chaty_proto::{channel::ChannelData, Channel, GroupsListItem};
@@ -9,7 +9,7 @@ use chaty_result::{
 
 use crate::{ChannelsRepository, ReferenceNoSqlDb};
 
-#[async_trait()]
+#[async_trait]
 impl ChannelsRepository for ReferenceNoSqlDb {
   async fn channels_groups_create(
     &self,
@@ -78,5 +78,36 @@ impl ChannelsRepository for ReferenceNoSqlDb {
     groups.truncate(limit as usize);
 
     Ok(groups)
+  }
+
+  async fn channels_get_channels_ids_by_user_id(
+    &self,
+    user_id: &str,
+    channel_types: &[&str],
+  ) -> Result<Vec<String>, DBError> {
+    let channels = self.channels.lock().await;
+
+    let type_set: HashSet<_> = channel_types.iter().cloned().collect();
+
+    let channel_ids: Vec<String> = channels
+      .iter()
+      .filter(|(_id, channel)| {
+        if !type_set.contains(channel.channel_type.as_str()) {
+          return false;
+        }
+
+        // Check user participation based on channel data
+        match &channel.channel_data {
+          Some(ChannelData::Direct(dm)) => dm.recipients.contains(&user_id.to_string()),
+          Some(ChannelData::Group(group)) => group.recipients.contains(&user_id.to_string()),
+          Some(ChannelData::Saved(saved)) => saved.user_id == user_id,
+          Some(ChannelData::Text(_)) => true,
+          None => false,
+        }
+      })
+      .map(|(id, _)| id.clone())
+      .collect();
+
+    Ok(channel_ids)
   }
 }

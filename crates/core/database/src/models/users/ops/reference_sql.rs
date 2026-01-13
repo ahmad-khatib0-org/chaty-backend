@@ -46,7 +46,12 @@ impl UsersRepository for ReferenceSqlDb {
     Ok(CachedUserData { ..Default::default() })
   }
 
-  async fn users_update_password(&self, _ctx: Arc<Context>, user_id: &str, password_hash: &str) -> Result<(), DBError> {
+  async fn users_update_password(
+    &self,
+    _ctx: Arc<Context>,
+    user_id: &str,
+    password_hash: &str,
+  ) -> Result<(), DBError> {
     let mut users = self.users.lock().await;
     let path = "database.users.users_update_password".to_string();
 

@@ -74,7 +74,7 @@ impl ChannelsRepository for ScyllaDb {
       return DBError { path: path.clone(), err_type, msg, err };
     };
 
-    let result = if last_id.is_empty() {
+    let rows = if last_id.is_empty() {
       self
         .db
         .execute_unpaged(&self.prepared.channels.groups_list_first_page, (user_id, limit))
@@ -85,30 +85,57 @@ impl ChannelsRepository for ScyllaDb {
         .execute_unpaged(&self.prepared.channels.groups_list_next_page, (user_id, last_id, limit))
         .await
     }
+    .map_err(|err| de(Box::new(err), format!("failed to fetch groups"), None))?
+    .into_rows_result()
     .map_err(|err| de(Box::new(err), format!("failed to fetch groups"), None))?;
 
-    let rows = result.into_rows_result().map_err(|err| DBError {
-      path: path.clone(),
-      err_type: ErrorType::JsonUnmarshal,
-      msg: format!("failed to parse rows: {}", err),
-      err: Box::new(err),
-    })?;
-
     let mut groups = Vec::new();
-    let typed_rows = rows
+    rows
       .rows::<(String, ChannelGroupDB, CqlTimestamp)>()
-      .map_err(|err| de(Box::new(err), format!("failed to iterate over channels groups"), None))?;
-
-    for row_result in typed_rows {
-      let (id, s_group, created_at_ts) = row_result.map_err(|err| {
-        let msg = format!("failed to deserialize channels group");
-        de(Box::new(err), msg, Some(ErrorType::JsonUnmarshal))
-      })?;
-
-      let group: ChannelGroup = s_group.into();
-      groups.push(GroupsListItem { id, group: Some(group), created_at: created_at_ts.0 });
-    }
+      .map_err(|err| de(Box::new(err), format!("failed to iterate over channels groups"), None))?
+      .map(|row| {
+        row
+          .map(|r| {
+            let group: Option<ChannelGroup> = Some(r.1.into());
+            groups.push(GroupsListItem { id: r.0, group, created_at: r.2 .0 });
+          })
+          .map_err(|err| de(Box::new(err), format!("failed to deserialize a channel group"), None))
+      });
 
     Ok(groups)
+  }
+
+  async fn channels_get_channels_ids_by_user_id(
+    &self,
+    user_id: &str,
+    channel_types: &[&str],
+  ) -> Result<Vec<String>, DBError> {
+    let path = "database.channels.channels_get_channels_ids_by_user_id".to_string();
+
+    let de = |err: BoxedErr, msg: &str| {
+      let err_type = ErrorType::DBSelectError;
+      return DBError { path: path.clone(), err_type, msg: msg.to_string(), err };
+    };
+
+    // Build query with IN clause for multiple types
+    let placeholders = channel_types.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let query = format!(
+      "SELECT channel_id FROM channels_by_user WHERE user_id = ? AND channel_type IN ({})",
+      placeholders
+    );
+
+    let rows = self
+      .db
+      .query_unpaged(query, (user_id, channel_types))
+      .await
+      .map_err(|e| de(Box::new(e), "failed to fetch channel ids"))?
+      .into_rows_result()
+      .map_err(|e| de(Box::new(e), "failed to parse rows"))?;
+
+    rows
+      .rows::<(String,)>()
+      .map_err(|e| de(Box::new(e), "failed to iterate over rows"))?
+      .map(|row_res| row_res.map(|(id,)| id).map_err(|e| de(Box::new(e), "deserialization failed")))
+      .collect()
   }
 }

@@ -3,6 +3,12 @@ use std::ops::Deref;
 use scylla::{client::session::Session, statement::prepared::PreparedStatement};
 
 #[derive(Debug)]
+pub struct Prepared {
+  pub channels: PreparedChannels,
+  pub server_members: PreparedServerMembers,
+}
+
+#[derive(Debug)]
 pub struct PreparedChannels {
   pub insert_channel: PreparedStatement,
   pub insert_channel_by_user: PreparedStatement,
@@ -11,8 +17,8 @@ pub struct PreparedChannels {
 }
 
 #[derive(Debug)]
-pub struct Prepared {
-  pub channels: PreparedChannels,
+pub struct PreparedServerMembers {
+  pub get_server_ids_by_user_id: PreparedStatement,
 }
 
 /// Scylladb implementation

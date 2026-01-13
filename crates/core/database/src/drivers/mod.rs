@@ -160,6 +160,11 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to prepare groups_list_next_page statment: {}", e))?;
 
+        let get_server_ids_by_user_id = session
+          .prepare(r#"SELECT server_id FROM server_members_by_user WHERE user_id = ?"#)
+          .await
+          .map_err(|e| format!("Failed to prepare get_server_ids_by_user_id  statment: {}", e))?;
+
         Ok(DatabaseNoSql::Scylladb(ScyllaDb {
           db: session,
           prepared: Prepared {
@@ -169,6 +174,7 @@ impl DatabaseInfoNoSql {
               groups_list_first_page,
               groups_list_next_page,
             },
+            server_members: PreparedServerMembers { get_server_ids_by_user_id },
           },
         }))
       }

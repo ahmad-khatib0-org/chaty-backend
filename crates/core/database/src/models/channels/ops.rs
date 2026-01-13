@@ -25,4 +25,11 @@ pub trait ChannelsRepository: Sync + Send {
     last_id: &str,
     limit: i32,
   ) -> Result<Vec<GroupsListItem>, DBError>;
+
+  /// Get channel IDs for the specified user, filtered by channel types.
+  async fn channels_get_channels_ids_by_user_id(
+    &self,
+    user_id: &str,
+    channel_types: &[&str], // e.g., ["group", "direct_message"]
+  ) -> Result<Vec<String>, DBError>;
 }
