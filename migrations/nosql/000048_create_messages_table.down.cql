@@ -1,1 +1,1 @@
-DROP TYPE IF EXISTS messages;
+DROP TABLE IF EXISTS messages;
