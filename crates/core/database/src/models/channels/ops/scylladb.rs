@@ -23,39 +23,50 @@ impl ChannelsRepository for ScyllaDb {
     let group = match &channel.channel_data {
       Some(ChannelData::Group(g)) => g,
       _ => {
-        return Err(DBError {
-          path,
-          err_type: ErrorType::InvalidData,
-          msg: "Channel must be a group type with valid group data".to_string(),
-          ..Default::default()
-        });
+        let msg = "Channel must be a group type with valid group data".to_string();
+        return Err(DBError { path, err_type: ErrorType::InvalidData, msg, ..Default::default() });
       }
+    };
+
+    let de = |err: BoxedErr, msg: &str| {
+      let path = path.clone();
+      return DBError { path, err_type: ErrorType::DBInsertError, msg: msg.into(), err };
     };
 
     let created_at = channel.created_at.as_ref().map(|ts| CqlTimestamp(ts.seconds * 1000));
     let updated_at = channel.updated_at.as_ref().map(|ts| CqlTimestamp(ts.seconds * 1000));
 
     // Create a Logged Batch for atomic-like dual-write
-    let mut batch = Batch::default();
-    batch.append_statement(self.prepared.channels.insert_channel.clone());
-    batch.append_statement(self.prepared.channels.insert_channel_by_user.clone());
+    let mut batch1 = Batch::default();
+    batch1.append_statement(self.prepared.channels.insert_channel.clone());
+    batch1.append_statement(self.prepared.channels.insert_channel_by_user.clone());
+
+    let mut batch2 = Batch::default();
+    batch2.append_statement(self.prepared.channels.insert_channel_by_recipient.clone());
+
+    let recipient_params: Vec<_> = group
+      .recipients
+      .iter()
+      .map(|recipient_id| (recipient_id, &channel.id, &channel.channel_type, &created_at))
+      .collect();
 
     self
       .db
       .batch(
-        &batch,
+        &batch1,
         (
           (&channel.id, &channel.channel_type, group, &created_at, &updated_at),
           (&group.user_id, &channel.id, &channel.channel_type, group, &created_at, &updated_at),
         ),
       )
       .await
-      .map_err(|err| DBError {
-        path,
-        err_type: ErrorType::DatabaseError,
-        msg: format!("failed to create group (batch): {}", err),
-        err: Box::new(err),
-      })?;
+      .map_err(|err| de(Box::new(err), "failed to insert a channel, batch 1"))?;
+
+    self
+      .db
+      .batch(&batch2, recipient_params)
+      .await
+      .map_err(|err| de(Box::new(err), "failed to create group (batch2 recipients)"))?;
 
     Ok(())
   }
@@ -89,18 +100,18 @@ impl ChannelsRepository for ScyllaDb {
     .into_rows_result()
     .map_err(|err| de(Box::new(err), format!("failed to fetch groups"), None))?;
 
-    let mut groups = Vec::new();
-    rows
+    let groups: Vec<GroupsListItem> = rows
       .rows::<(String, ChannelGroupDB, CqlTimestamp)>()
-      .map_err(|err| de(Box::new(err), format!("failed to iterate over channels groups"), None))?
-      .map(|row| {
-        row
-          .map(|r| {
-            let group: Option<ChannelGroup> = Some(r.1.into());
-            groups.push(GroupsListItem { id: r.0, group, created_at: r.2 .0 });
+      .map_err(|err| de(Box::new(err), "failed to create iterator".to_string(), None))?
+      .map(|row_result| {
+        row_result
+          .map(|(id, group_db, created_at)| {
+            let group: ChannelGroup = group_db.into();
+            GroupsListItem { id, group: Some(group), created_at: created_at.0 }
           })
-          .map_err(|err| de(Box::new(err), format!("failed to deserialize a channel group"), None))
-      });
+          .map_err(|err| de(Box::new(err), "failed to deserialize row".to_string(), None))
+      })
+      .collect::<Result<Vec<_>, _>>()?;
 
     Ok(groups)
   }
@@ -120,7 +131,7 @@ impl ChannelsRepository for ScyllaDb {
     // Build query with IN clause for multiple types
     let placeholders = channel_types.iter().map(|_| "?").collect::<Vec<_>>().join(",");
     let query = format!(
-      "SELECT channel_id FROM channels_by_user WHERE user_id = ? AND channel_type IN ({})",
+      "SELECT channel_id FROM channels_by_recipient WHERE recipient_user_id = ? AND channel_type IN ({})",
       placeholders
     );
 

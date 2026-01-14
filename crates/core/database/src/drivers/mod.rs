@@ -165,16 +165,61 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to prepare get_server_ids_by_user_id  statment: {}", e))?;
 
+        let insert_channel_by_recipient = session
+          .prepare(
+            r#"
+            INSERT INTO channels_by_recipient(
+                recipient_user_id, channel_id, channel_type, created_at
+            ) VALUES (?, ?, ?, ?)
+           "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_server_ids_by_user_id  statment: {}", e))?;
+
+        let get_server_member_by_id = session
+          .prepare(
+            r#"
+                SELECT 
+                  user_id, username, avatar, nickname, joined_at,
+                  roles, timeout, can_publish, can_receive 
+                FROM server_members 
+                WHERE server_id = ? AND user_id = ?
+           "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_server_ids_by_user_id  statment: {}", e))?;
+
+        let get_server_by_id = session
+          .prepare(
+            r#"
+              SELECT 
+                 id, owner_id, name, description, 
+                 default_permissions, icon, banner, flags, 
+                 nsfw, analytics, discoverable, roles, 
+                 categories, system_messages, stats, 
+                 channels, created_at, updated_at
+              FROM servers 
+              WHERE id = ?
+           "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_server_by_id statment: {}", e))?;
+
         Ok(DatabaseNoSql::Scylladb(ScyllaDb {
           db: session,
           prepared: Prepared {
+            servers: PreparedServers { get_server_by_id },
             channels: PreparedChannels {
               insert_channel,
               insert_channel_by_user,
+              insert_channel_by_recipient,
               groups_list_first_page,
               groups_list_next_page,
             },
-            server_members: PreparedServerMembers { get_server_ids_by_user_id },
+            server_members: PreparedServerMembers {
+              get_server_ids_by_user_id,
+              get_server_member_by_id,
+            },
           },
         }))
       }

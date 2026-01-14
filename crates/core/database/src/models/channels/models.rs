@@ -1,31 +1,29 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use chaty_proto::{
-  ChannelDirectMessage, ChannelGroup, ChannelSavedMessages, ChannelText, OverrideField,
+  ChannelDirectMessage, ChannelGroup, ChannelSavedMessages, ChannelText, File, OverrideField,
 };
 use scylla::{value::CqlTimestamp, DeserializeValue, SerializeValue};
 
-use crate::models::files::FileDB;
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, SerializeValue, DeserializeValue)]
 pub struct ChannelDB {
   pub id: String,
   pub channel_type: String,
   pub saved: Option<ChannelSavedMessages>,
   pub direct: Option<ChannelDirectMessage>,
   pub group: Option<ChannelGroupDB>,
-  pub text: Option<ChannelSavedMessages>,
+  pub text: Option<ChannelTextDB>,
   pub created_at: CqlTimestamp,
   pub updated_at: CqlTimestamp,
 }
 
-#[derive(SerializeValue, DeserializeValue, Debug, Clone)]
+#[derive(SerializeValue, DeserializeValue, Debug, Clone, Default)]
 pub struct ChannelGroupDB {
   pub user_id: String,
   pub name: String,
   pub description: Option<String>,
   pub recipients: BTreeSet<String>,
-  pub icon: Option<FileDB>,
+  pub icon: Option<File>,
   pub last_message_id: Option<String>,
   pub permissions: Option<i64>,
   pub nsfw: bool,
@@ -37,8 +35,8 @@ impl From<ChannelGroupDB> for ChannelGroup {
       user_id: ch.user_id,
       name: ch.name,
       description: ch.description,
-      recipients: ch.recipients.into_iter().collect(), // BTreeSet to Vec
-      icon: ch.icon.map(|f| f.into()),
+      recipients: ch.recipients.into_iter().collect(),
+      icon: ch.icon,
       last_message_id: ch.last_message_id,
       permissions: ch.permissions,
       nsfw: ch.nsfw,
@@ -46,12 +44,12 @@ impl From<ChannelGroupDB> for ChannelGroup {
   }
 }
 
-#[derive(SerializeValue, DeserializeValue, Debug)]
+#[derive(SerializeValue, DeserializeValue, Debug, Clone)]
 pub struct ChannelTextDB {
   pub server_id: String,
   pub name: String,
   pub description: Option<String>,
-  pub icon: Option<FileDB>,
+  pub icon: Option<File>,
   pub last_message_id: Option<String>,
   pub default_permissions: Option<OverrideField>,
   pub role_permissions: BTreeMap<String, OverrideField>,

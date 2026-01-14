@@ -1,10 +1,13 @@
 mod channels;
-mod files;
 mod serve_members;
+mod servers;
 mod users;
+
+use std::ops::Deref;
 
 pub use channels::*;
 pub use serve_members::*;
+pub use servers::*;
 pub use users::*;
 
 #[cfg(feature = "postgres")]
@@ -16,7 +19,7 @@ use crate::{DatabaseSql, ReferenceSqlDb};
 pub trait AbstractDatabaseSql: Sync + Send + UsersRepository {}
 
 pub trait AbstractDatabaseNoSql:
-  Sync + Send + ChannelsRepository + ServerMembersRepository
+  Sync + Send + ChannelsRepository + ServerMembersRepository + ServersRepository
 {
 }
 
@@ -29,7 +32,7 @@ impl AbstractDatabaseNoSql for ScyllaDb {}
 #[cfg(feature = "postgres")]
 impl AbstractDatabaseSql for PostgresDb {}
 
-impl std::ops::Deref for DatabaseNoSql {
+impl Deref for DatabaseNoSql {
   type Target = dyn AbstractDatabaseNoSql;
 
   fn deref(&self) -> &Self::Target {
@@ -41,7 +44,7 @@ impl std::ops::Deref for DatabaseNoSql {
   }
 }
 
-impl std::ops::Deref for DatabaseSql {
+impl Deref for DatabaseSql {
   type Target = dyn AbstractDatabaseSql;
 
   fn deref(&self) -> &Self::Target {
@@ -63,6 +66,20 @@ pub trait EnumHelpers {
   fn from_optional_string(value: Option<String>) -> Option<Self>
   where
     Self: Sized;
+
+  fn from_str(value: &str) -> Option<Self>
+  where
+    Self: Sized,
+  {
+    EnumHelpers::from_optional_string(Some(value.to_string()))
+  }
+
+  fn from_string(value: String) -> Option<Self>
+  where
+    Self: Sized,
+  {
+    EnumHelpers::from_optional_string(Some(value))
+  }
 
   fn to_i32(&self) -> i32 {
     return 0;

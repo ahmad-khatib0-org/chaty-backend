@@ -4,6 +4,7 @@ mod reference_no_sql;
 mod scylladb;
 
 use async_trait::async_trait;
+use chaty_proto::ServerMember;
 use chaty_result::errors::DBError;
 
 #[async_trait]
@@ -13,4 +14,14 @@ pub trait ServerMembersRepository: Sync + Send {
     &self,
     user_id: &str,
   ) -> Result<Vec<String>, DBError>;
+
+  /// Fetch a server member by their id
+  async fn server_members_get_member(
+    &self,
+    server_id: &str,
+    user_id: &str,
+  ) -> Result<ServerMember, DBError>;
+
+  /// Check whether this member is in timeout
+  fn server_members_is_member_in_timeout(&self, member: &ServerMember) -> bool;
 }

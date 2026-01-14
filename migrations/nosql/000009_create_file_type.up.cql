@@ -6,7 +6,7 @@ CREATE TYPE IF NOT EXISTS file_type (
   content_type text, -- Raw content type of this file
   size bigint, -- Size of this file (in bytes)
   hash text, -- Hash of this file
-  uploaded_at timestamp, -- When this file was uploaded
+  uploaded_at bigint, -- When this file was uploaded
   deleted boolean, -- Whether this file was deleted
   reported boolean -- Whether this file was reported
 )

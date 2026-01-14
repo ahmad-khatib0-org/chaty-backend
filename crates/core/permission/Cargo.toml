@@ -10,6 +10,8 @@ description = "Chaty Backend: Permission logic and helpers"
 serde = ["dep:serde"]
 
 [dependencies]
+chaty-proto = ">=0.0.1, <1.0"
+
 async-trait = "0.1.89"
 once_cell = "1.21.3"
 
