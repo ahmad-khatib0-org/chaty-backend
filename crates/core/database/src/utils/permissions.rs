@@ -2,8 +2,8 @@ use std::{borrow::Cow, collections::HashSet, sync::Arc};
 
 use async_trait::async_trait;
 use chaty_permission::{
-  ChannelType, Override, PermissionQuery, PermissionValue, RelationshipStatus,
-  DEFAULT_PERMISSION_DIRECT_MESSAGE,
+  calculate_user_permissions, ChannelType, Override, PermissionQuery, PermissionValue,
+  RelationshipStatus, DEFAULT_PERMISSION_DIRECT_MESSAGE,
 };
 use chaty_proto::{Server, ServerMember, User, UserRelationshipStatus};
 use chaty_result::context::Context;
@@ -359,5 +359,93 @@ impl PermissionQuery for DatabasePermissionQuery<'_> {
       // Not a server channel
       unimplemented!();
     }
+  }
+}
+
+impl<'a> DatabasePermissionQuery<'a> {
+  /// Create a new permission calculator
+  pub fn new(
+    ctx: Arc<Context>,
+    sql_db: &'a DatabaseSql,
+    nosql_db: &'a DatabaseNoSql,
+    perspective: &'a User,
+  ) -> DatabasePermissionQuery<'a> {
+    DatabasePermissionQuery {
+      ctx,
+      sql_db,
+      nosql_db,
+      perspective,
+      user: None,
+      channel: None,
+      server: None,
+      member: None,
+
+      cached_mutual_connection: None,
+      cached_user_permission: None,
+      cached_permission: None,
+    }
+  }
+
+  /// Calculate the user permission value
+  pub async fn calc_user(mut self) -> DatabasePermissionQuery<'a> {
+    if self.cached_user_permission.is_some() {
+      return self;
+    }
+    if self.user.is_none() {
+      panic!("Expected `PermissionCalculator.user to exist.");
+    }
+
+    DatabasePermissionQuery {
+      cached_user_permission: Some(calculate_user_permissions(&mut self).await),
+      ..self
+    }
+  }
+
+  /// Use user
+  pub fn user(self, user: &'a User) -> DatabasePermissionQuery<'a> {
+    DatabasePermissionQuery { user: Some(Cow::Borrowed(user)), ..self }
+  }
+
+  /// Use channel
+  pub fn channel(self, channel: &'a ChannelDB) -> DatabasePermissionQuery<'a> {
+    DatabasePermissionQuery { channel: Some(Cow::Borrowed(channel)), ..self }
+  }
+
+  /// Use server
+  pub fn server(self, server: &'a Server) -> DatabasePermissionQuery<'a> {
+    DatabasePermissionQuery { server: Some(Cow::Borrowed(server)), ..self }
+  }
+
+  /// Use member
+  pub fn member(self, member: &'a ServerMember) -> DatabasePermissionQuery<'a> {
+    DatabasePermissionQuery { member: Some(Cow::Borrowed(member)), ..self }
+  }
+
+  /// Access the underlying user
+  pub fn user_ref(&'_ self) -> &'_ Option<Cow<'_, User>> {
+    &self.user
+  }
+
+  /// Access the underlying server
+  pub fn channel_ref(&'_ self) -> &'_ Option<Cow<'_, ChannelDB>> {
+    &self.channel
+  }
+
+  /// Access the underlying server
+  pub fn server_ref(&'_ self) -> &'_ Option<Cow<'_, Server>> {
+    &self.server
+  }
+
+  /// Access the underlying member
+  pub fn member_ref(&'_ self) -> &'_ Option<Cow<'_, ServerMember>> {
+    &self.member
+  }
+
+  /// Get the known member's current ranking
+  pub fn get_member_rank(&self) -> Option<i64> {
+    self
+      .member
+      .as_ref()
+      .map(|m| self.nosql_db.server_members_get_ranking(m, self.server.as_ref().unwrap()))
   }
 }

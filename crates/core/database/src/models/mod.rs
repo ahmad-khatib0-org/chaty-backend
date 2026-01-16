@@ -1,4 +1,5 @@
 mod channels;
+mod helpers;
 mod serve_members;
 mod servers;
 mod users;
@@ -6,12 +7,14 @@ mod users;
 use std::ops::Deref;
 
 pub use channels::*;
+pub use helpers::*;
 pub use serve_members::*;
 pub use servers::*;
 pub use users::*;
 
 #[cfg(feature = "postgres")]
 use crate::PostgresDb;
+
 #[cfg(feature = "scylladb")]
 use crate::{DatabaseNoSql, ReferenceNoSqlDb, ScyllaDb};
 use crate::{DatabaseSql, ReferenceSqlDb};
@@ -19,7 +22,7 @@ use crate::{DatabaseSql, ReferenceSqlDb};
 pub trait AbstractDatabaseSql: Sync + Send + UsersRepository {}
 
 pub trait AbstractDatabaseNoSql:
-  Sync + Send + ChannelsRepository + ServerMembersRepository + ServersRepository
+  Sync + Send + ChannelsRepository + ServerMembersRepository + ServersRepository + HelpersRepository
 {
 }
 
