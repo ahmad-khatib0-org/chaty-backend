@@ -439,6 +439,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "cache"
+version = "0.1.0"
+dependencies = [
+ "chaty-config",
+ "chaty-database",
+ "chaty-proto",
+ "chaty-result",
+ "deadpool-redis",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "cached"
 version = "0.56.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
