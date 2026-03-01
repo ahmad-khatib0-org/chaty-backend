@@ -6,6 +6,6 @@ CREATE TYPE IF NOT EXISTS role_type (
   colour text, -- '#FF0000' or null
   hoist boolean,
   rank int,
-  created_at timestamp,
-  updated_at timestamp
+  created_at bigint,
+  updated_at bigint
 );

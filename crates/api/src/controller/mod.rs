@@ -1,4 +1,5 @@
 pub(crate) mod audit;
+mod channels;
 mod groups;
 mod router;
 mod search;
@@ -7,6 +8,7 @@ mod users;
 use std::time::Duration;
 use std::{net::SocketAddr, sync::Arc};
 
+use chaty_cache::Cache;
 use chaty_config::Settings;
 use chaty_database::{DatabaseNoSql, DatabaseSql};
 use chaty_proto::chaty_service_server::ChatyServiceServer;
@@ -25,6 +27,7 @@ pub struct ApiControllerArgs {
   pub(super) config: Arc<Settings>,
   pub(super) broker: Arc<BrokerApi>,
   pub(super) metrics: Arc<MetricsCollector>,
+  pub(super) cache: Arc<Cache>,
 }
 
 pub(crate) struct ApiController {
@@ -34,6 +37,7 @@ pub(crate) struct ApiController {
   pub(super) broker: Arc<BrokerApi>,
   pub(super) metrics: Arc<MetricsCollector>,
   pub(super) http_client: Arc<Client>,
+  pub(super) cache: Arc<Cache>,
 }
 
 impl ApiController {
@@ -53,6 +57,7 @@ impl ApiController {
       broker: args.broker,
       metrics: args.metrics,
       http_client: Arc::new(http_client),
+      cache: args.cache,
     };
 
     controller

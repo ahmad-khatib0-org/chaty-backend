@@ -1,11 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
-use chaty_proto::{channel::ChannelData, Channel, ChannelGroup, GroupsCreateRequest, Timestamp};
+use chaty_proto::{Channel, ChannelGroup, GroupsCreateRequest};
 use chaty_result::{
   context::Context,
   errors::{AppError, OptionalParams},
 };
-use chaty_utils::time::time_get_millis;
+use chaty_utils::time::time_get_seconds;
 use serde_json::{json, Value};
 use tonic::Code;
 use ulid::Ulid;
@@ -43,7 +43,7 @@ pub fn groups_create_validate(
     }
   }
 
-  // Validate recipients
+  // TODO: Validate recipients
   // if req.recipients.is_empty() {
   //   return Err(ae("groups.recipients.required", None));
   // }
@@ -62,9 +62,7 @@ pub async fn groups_create_pre_save(
     return AppError::new(ctx.clone(), path, id, None, "", Code::Internal.into(), None);
   };
 
-  let now_millis = time_get_millis();
-  let now_seconds = (now_millis / 1000) as i64;
-  let now_nanos = ((now_millis % 1000) * 1_000_000) as i32;
+  let now_seconds = time_get_seconds();
 
   let group = ChannelGroup {
     user_id: user_id.to_string(),
@@ -81,9 +79,10 @@ pub async fn groups_create_pre_save(
     id: Ulid::new().to_string(),
     channel_type: "group".to_string(),
     voice_max_users: None,
-    created_at: Some(Timestamp { seconds: now_seconds, nanos: now_nanos }),
-    updated_at: Some(Timestamp { seconds: now_seconds, nanos: now_nanos }),
-    channel_data: Some(ChannelData::Group(group)),
+    created_at: now_seconds,
+    updated_at: now_seconds,
+    group: Some(group),
+    ..Default::default()
   })
 }
 

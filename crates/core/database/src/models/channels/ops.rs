@@ -26,6 +26,13 @@ pub trait ChannelsRepository: Sync + Send {
     limit: i32,
   ) -> Result<Vec<GroupsListItem>, DBError>;
 
+  /// Get a channel data by a given id
+  async fn channels_get_by_id(
+    &self,
+    ctx: Arc<Context>,
+    channel_id: &str,
+  ) -> Result<Channel, DBError>;
+
   /// Get channel IDs for the specified user, filtered by channel types.
   async fn channels_get_channels_ids_by_user_id(
     &self,

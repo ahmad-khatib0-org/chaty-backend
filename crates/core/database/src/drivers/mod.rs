@@ -205,6 +205,18 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to prepare get_server_by_id statment: {}", e))?;
 
+        let get_channel_by_id = session
+          .prepare(
+            r#"
+          SELECT 
+            id, channel_type, saved, direct, group, text, voice_max_users, created_at, updated_at 
+          FROM channels 
+          WHERE id = ?
+        "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_channel_by_id statment: {}", e))?;
+
         Ok(DatabaseNoSql::Scylladb(ScyllaDb {
           db: session,
           prepared: Prepared {
@@ -214,6 +226,7 @@ impl DatabaseInfoNoSql {
               insert_channel_by_user,
               insert_channel_by_recipient,
               groups_list_first_page,
+              get_channel_by_id,
               groups_list_next_page,
             },
             server_members: PreparedServerMembers {

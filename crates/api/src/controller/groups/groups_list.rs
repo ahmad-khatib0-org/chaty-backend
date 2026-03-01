@@ -50,8 +50,7 @@ pub async fn groups_list(
   if let Err(err) = db_res {
     ctr.metrics.record_db_error("channels_groups_list", &err.msg);
     ctr.metrics.record_groups_list_failure();
-    let err_to_return = ie(Box::new(err));
-    return Ok(return_err(err_to_return));
+    return Ok(return_err(ie(Box::new(err))));
   }
 
   let request_duration = start.elapsed().as_secs_f64();

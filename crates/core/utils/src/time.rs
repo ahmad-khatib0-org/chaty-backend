@@ -4,7 +4,7 @@ pub fn time_get_millis() -> i64 {
   Utc::now().timestamp_millis()
 }
 
-pub fn time_get_seconds() -> u64 {
+pub fn time_get_seconds() -> i64 {
   Utc::now().timestamp().try_into().unwrap()
 }
 

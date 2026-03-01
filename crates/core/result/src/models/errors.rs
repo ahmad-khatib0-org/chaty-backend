@@ -28,6 +28,20 @@ pub const ERROR_ID_UNAVAILABLE: &str = "error.unavailable";
 pub const ERROR_ID_DATA_LOSS: &str = "error.data_loss";
 pub const ERROR_ID_UNAUTHENTICATED: &str = "error.unauthenticated";
 
+pub fn not_found_error(ctx: Arc<Context>, path: &str, err: OptionalErr) -> AppError {
+  let errors =
+    if err.is_some() { Some(AppErrorErrors { err, ..Default::default() }) } else { None };
+  let code = Code::NotFound as i32;
+  AppError::new(ctx.clone(), path, "error.not_found", None, "", code, errors)
+}
+
+pub fn permission_denied_error(ctx: Arc<Context>, path: &str, err: OptionalErr) -> AppError {
+  let errors =
+    if err.is_some() { Some(AppErrorErrors { err, ..Default::default() }) } else { None };
+  let code = Code::PermissionDenied as i32;
+  AppError::new(ctx.clone(), path, ERROR_ID_PERMISSION_DENIED, None, "", code, errors)
+}
+
 #[derive(Debug)]
 pub struct DBError {
   pub err_type: ErrorType,

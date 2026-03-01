@@ -1,15 +1,18 @@
-use std::sync::Arc;
+use std::{
+  io::{Error, ErrorKind},
+  sync::Arc,
+};
 
 use async_trait::async_trait;
-use chaty_proto::{channel::ChannelData, Channel, ChannelGroup, GroupsListItem};
+use chaty_proto::{Channel, ChannelGroup, GroupsListItem};
 use chaty_result::{
   context::Context,
   errors::{BoxedErr, DBError, ErrorType},
 };
 
-use scylla::{statement::batch::Batch, value::CqlTimestamp};
+use scylla::statement::batch::Batch;
 
-use crate::{models::channels::models::ChannelGroupDB, ChannelsRepository, ScyllaDb};
+use crate::{ChannelsRepository, ScyllaDb};
 
 #[async_trait()]
 impl ChannelsRepository for ScyllaDb {
@@ -20,21 +23,18 @@ impl ChannelsRepository for ScyllaDb {
   ) -> Result<(), DBError> {
     let path = "database.channels.channels_create".to_string();
 
-    let group = match &channel.channel_data {
-      Some(ChannelData::Group(g)) => g,
-      _ => {
-        let msg = "Channel must be a group type with valid group data".to_string();
-        return Err(DBError { path, err_type: ErrorType::InvalidData, msg, ..Default::default() });
-      }
-    };
+    if &channel.channel_type != &"group".to_string() {
+      let msg = "Channel must be a group type with valid group data".to_string();
+      return Err(DBError { path, err_type: ErrorType::InvalidData, msg, ..Default::default() });
+    }
 
     let de = |err: BoxedErr, msg: &str| {
       let path = path.clone();
       return DBError { path, err_type: ErrorType::DBInsertError, msg: msg.into(), err };
     };
 
-    let created_at = channel.created_at.as_ref().map(|ts| CqlTimestamp(ts.seconds * 1000));
-    let updated_at = channel.updated_at.as_ref().map(|ts| CqlTimestamp(ts.seconds * 1000));
+    let created_at = channel.created_at;
+    let updated_at = channel.updated_at;
 
     // Create a Logged Batch for atomic-like dual-write
     let mut batch1 = Batch::default();
@@ -44,12 +44,16 @@ impl ChannelsRepository for ScyllaDb {
     let mut batch2 = Batch::default();
     batch2.append_statement(self.prepared.channels.insert_channel_by_recipient.clone());
 
-    let recipient_params: Vec<_> = group
+    let recipient_params: Vec<_> = channel
+      .group
+      .as_ref()
+      .unwrap()
       .recipients
       .iter()
       .map(|recipient_id| (recipient_id, &channel.id, &channel.channel_type, &created_at))
       .collect();
 
+    let group = channel.group.as_ref().unwrap();
     self
       .db
       .batch(
@@ -101,19 +105,50 @@ impl ChannelsRepository for ScyllaDb {
     .map_err(|err| de(Box::new(err), format!("failed to fetch groups"), None))?;
 
     let groups: Vec<GroupsListItem> = rows
-      .rows::<(String, ChannelGroupDB, CqlTimestamp)>()
+      .rows::<(String, ChannelGroup, i64)>()
       .map_err(|err| de(Box::new(err), "failed to create iterator".to_string(), None))?
       .map(|row_result| {
         row_result
-          .map(|(id, group_db, created_at)| {
-            let group: ChannelGroup = group_db.into();
-            GroupsListItem { id, group: Some(group), created_at: created_at.0 }
-          })
+          .map(|(id, group, created_at)| GroupsListItem { id, group: Some(group), created_at })
           .map_err(|err| de(Box::new(err), "failed to deserialize row".to_string(), None))
       })
       .collect::<Result<Vec<_>, _>>()?;
 
     Ok(groups)
+  }
+
+  async fn channels_get_by_id(
+    &self,
+    _ctx: Arc<Context>,
+    channel_id: &str,
+  ) -> Result<Channel, DBError> {
+    let path = "database.channels.channels_get_by_id".to_string();
+
+    let de = |err: BoxedErr, msg: &str| {
+      let err_type = ErrorType::DBSelectError;
+      DBError { path: path.clone(), err_type, msg: msg.to_string(), err }
+    };
+
+    let rows = self
+      .db
+      .execute_unpaged(&self.prepared.channels.get_channel_by_id, (channel_id,))
+      .await
+      .map_err(|e| de(Box::new(e), "failed to fetch channel data"))?
+      .into_rows_result()
+      .map_err(|e| de(Box::new(e), "failed to parse rows"))?;
+
+    let mut typed_rows =
+      rows.rows::<Channel>().map_err(|e| de(Box::new(e), "failed to iterate over rows"))?;
+
+    typed_rows
+      .next()
+      .ok_or_else(|| DBError {
+        err_type: ErrorType::NoRows,
+        err: Box::new(Error::new(ErrorKind::NotFound, "channel not found")),
+        msg: "channel not found".to_string(),
+        path: path.clone(),
+      })?
+      .map_err(|e| de(Box::new(e), "deserialization failed"))
   }
 
   async fn channels_get_channels_ids_by_user_id(

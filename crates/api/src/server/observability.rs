@@ -40,6 +40,8 @@ pub struct MetricsCollector {
   pub groups_create_failed: Counter<u64>,
   pub groups_list_total: Counter<u64>,
   pub groups_list_failed: Counter<u64>,
+  pub channels_get_total: Counter<u64>,
+  pub channels_get_failed: Counter<u64>,
   pub search_usernames_total: Counter<u64>,
   pub search_usernames_failed: Counter<u64>,
   pub db_operations_total: Counter<u64>,
@@ -49,6 +51,7 @@ pub struct MetricsCollector {
   // Histograms
   pub request_duration_seconds: Histogram<f64>,
   pub db_operation_duration_seconds: Histogram<f64>,
+  pub cache_operation_duration_seconds: Histogram<f64>,
   pub broker_operation_duration_seconds: Histogram<f64>,
 }
 
@@ -74,6 +77,8 @@ impl Clone for MetricsCollector {
       groups_create_failed: self.groups_create_failed.clone(),
       groups_list_total: self.groups_list_total.clone(),
       groups_list_failed: self.groups_list_failed.clone(),
+      channels_get_total: self.channels_get_total.clone(),
+      channels_get_failed: self.channels_get_failed.clone(),
       search_usernames_total: self.search_usernames_total.clone(),
       search_usernames_failed: self.search_usernames_failed.clone(),
       db_operations_total: self.db_operations_total.clone(),
@@ -82,6 +87,7 @@ impl Clone for MetricsCollector {
       broker_messages_failed: self.broker_messages_failed.clone(),
       request_duration_seconds: self.request_duration_seconds.clone(),
       db_operation_duration_seconds: self.db_operation_duration_seconds.clone(),
+      cache_operation_duration_seconds: self.cache_operation_duration_seconds.clone(),
       broker_operation_duration_seconds: self.broker_operation_duration_seconds.clone(),
     }
   }
@@ -190,6 +196,15 @@ impl MetricsCollector {
       .with_description("Total failed group list requests")
       .build();
 
+    // --- Channels Metrics ---
+    let channels_get_total =
+      meter.u64_counter("api_channels_get").with_description("Total channel get requests").build();
+
+    let channels_get_failed = meter
+      .u64_counter("api_channels_get_failed")
+      .with_description("Total failed channel get requests")
+      .build();
+
     // --- Search Metrics ---
     let search_usernames_total = meter
       .u64_counter("api_search_usernames")
@@ -232,6 +247,11 @@ impl MetricsCollector {
       .with_description("Database operation duration in seconds")
       .build();
 
+    let cache_operation_duration_seconds = meter
+      .f64_histogram("api_cache_operation_duration_seconds")
+      .with_description("Cache operation duration in seconds")
+      .build();
+
     let broker_operation_duration_seconds = meter
       .f64_histogram("api_broker_operation_duration_seconds")
       .with_description("Broker operation duration in seconds")
@@ -257,6 +277,8 @@ impl MetricsCollector {
       groups_create_failed,
       groups_list_total,
       groups_list_failed,
+      channels_get_total,
+      channels_get_failed,
       search_usernames_total,
       search_usernames_failed,
       db_operations_total,
@@ -265,6 +287,7 @@ impl MetricsCollector {
       broker_messages_failed,
       request_duration_seconds,
       db_operation_duration_seconds,
+      cache_operation_duration_seconds,
       broker_operation_duration_seconds,
     })
   }
@@ -392,6 +415,15 @@ impl MetricsCollector {
     self.groups_list_failed.add(1, &[]);
   }
 
+  pub fn record_channels_get_success(&self) {
+    self.channels_get_total.add(1, &[]);
+  }
+
+  pub fn record_channels_get_failure(&self) {
+    self.channels_get_total.add(1, &[]);
+    self.channels_get_failed.add(1, &[]);
+  }
+
   pub fn record_search_usernames_success(&self) {
     self.search_usernames_total.add(1, &[]);
   }
@@ -432,6 +464,12 @@ impl MetricsCollector {
   pub fn observe_db_operation_duration(&self, operation: &str, duration_secs: f64) {
     self
       .db_operation_duration_seconds
+      .record(duration_secs, &[KeyValue::new("operation", operation.to_string())]);
+  }
+
+  pub fn observe_cache_operation_duration(&self, operation: &str, duration_secs: f64) {
+    self
+      .cache_operation_duration_seconds
       .record(duration_secs, &[KeyValue::new("operation", operation.to_string())]);
   }
 

@@ -1,3 +1,4 @@
+pub mod channels;
 mod helpers;
 mod init;
 pub mod users;

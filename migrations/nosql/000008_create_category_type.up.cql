@@ -3,5 +3,5 @@ CREATE TYPE IF NOT EXISTS category_type (
   id text, -- ULID
   title text,
   position int,
-  created_at timestamp
+  created_at bigint
 );

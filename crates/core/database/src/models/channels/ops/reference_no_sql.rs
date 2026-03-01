@@ -1,7 +1,11 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{
+  collections::HashSet,
+  io::{Error, ErrorKind},
+  sync::Arc,
+};
 
 use async_trait::async_trait;
-use chaty_proto::{channel::ChannelData, Channel, GroupsListItem};
+use chaty_proto::{Channel, GroupsListItem};
 use chaty_result::{
   context::Context,
   errors::{DBError, ErrorType},
@@ -42,7 +46,7 @@ impl ChannelsRepository for ReferenceNoSqlDb {
       .filter_map(|channel| {
         // Filter for group channels owned by the user
         if channel.channel_type == "group" {
-          if let Some(ChannelData::Group(group)) = &channel.channel_data {
+          if let Some(group) = &channel.group {
             if group.user_id == user_id {
               return Some((channel.id.clone(), channel.clone()));
             }
@@ -54,15 +58,15 @@ impl ChannelsRepository for ReferenceNoSqlDb {
       .iter()
       .map(|(id, channel)| GroupsListItem {
         id: id.clone(),
-        group: match &channel.channel_data {
-          Some(ChannelData::Group(g)) => Some(g.clone()),
+        group: match &channel.group {
+          Some(g) => Some(g.clone()),
           _ => None,
         },
-        created_at: channel.created_at.as_ref().map(|ts| ts.seconds).unwrap_or(0),
+        created_at: channel.created_at,
       })
       .collect();
 
-    // Sort by ID descending (ULID order = reverse chronological)
+    // Sort by ID descending
     groups.sort_by(|a, b| b.id.cmp(&a.id));
 
     // Apply cursor pagination
@@ -78,6 +82,23 @@ impl ChannelsRepository for ReferenceNoSqlDb {
     groups.truncate(limit as usize);
 
     Ok(groups)
+  }
+
+  async fn channels_get_by_id(
+    &self,
+    _ctx: Arc<Context>,
+    channel_id: &str,
+  ) -> Result<Channel, DBError> {
+    let channels = self.channels.lock().await;
+    let path = "database.channels.channels_get_by_id".to_string();
+
+    let chan = channels.iter().find(|chan| chan.1.id == channel_id);
+    if chan.is_none() {
+      let err = Box::new(Error::new(ErrorKind::NotFound, "channel not found"));
+      return Err(DBError::new(path, err, ErrorType::NoRows, "channel is not found"));
+    };
+
+    Ok(chan.unwrap().1.clone())
   }
 
   async fn channels_get_channels_ids_by_user_id(
@@ -97,13 +118,16 @@ impl ChannelsRepository for ReferenceNoSqlDb {
         }
 
         // Check user participation based on channel data
-        match &channel.channel_data {
-          Some(ChannelData::Direct(dm)) => dm.recipients.contains(&user_id.to_string()),
-          Some(ChannelData::Group(group)) => group.recipients.contains(&user_id.to_string()),
-          Some(ChannelData::Saved(saved)) => saved.user_id == user_id,
-          Some(ChannelData::Text(_)) => true,
-          None => false,
+        if &channel.channel_type == &"saved_messages".to_string() {
+          return channel.saved.as_ref().unwrap().user_id == user_id;
+        } else if &channel.channel_type == &"direct_message".to_string() {
+          return channel.direct.as_ref().unwrap().recipients.contains(&user_id.to_string());
+        } else if &channel.channel_type == &"group".to_string() {
+          return channel.group.as_ref().unwrap().recipients.contains(&user_id.to_string());
+        } else if &channel.channel_type == &"text".to_string() {
+          return true;
         }
+        false
       })
       .map(|(id, _)| id.clone())
       .collect();

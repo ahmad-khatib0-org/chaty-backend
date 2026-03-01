@@ -3,11 +3,12 @@ resolver = "2"
 
 members = [
   "crates/api",
-  "crates/auth", "crates/core/cache",
+  "crates/auth",
+  "crates/core/cache",
   "crates/core/config",
-  "crates/core/database", 
+  "crates/core/database",
   "crates/core/permission",
   "crates/core/result",
-  "crates/core/utils", 
+  "crates/core/utils",
   "crates/search-worker",
 ]

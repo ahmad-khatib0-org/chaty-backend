@@ -39,9 +39,9 @@ CREATE TABLE IF NOT EXISTS messages (
   flags int, 
   
   -- Time at which this message was last edited (optional)
-  edited_at timestamp, 
+  edited_at bigint, 
   -- When message was created (ULID timestamp)
-  created_at timestamp, 
+  created_at bigint, 
     
   PRIMARY KEY ((channel_id), id)
 ) WITH CLUSTERING ORDER BY (id DESC);

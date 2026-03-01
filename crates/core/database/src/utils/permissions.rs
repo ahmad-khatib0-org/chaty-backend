@@ -5,10 +5,10 @@ use chaty_permission::{
   calculate_user_permissions, ChannelType, Override, PermissionQuery, PermissionValue,
   RelationshipStatus, DEFAULT_PERMISSION_DIRECT_MESSAGE,
 };
-use chaty_proto::{Server, ServerMember, User, UserRelationshipStatus};
+use chaty_proto::{Channel, Server, ServerMember, User, UserRelationshipStatus};
 use chaty_result::context::Context;
 
-use crate::{ChannelDB, DatabaseNoSql, DatabaseSql, EnumHelpers};
+use crate::{DatabaseNoSql, DatabaseSql, EnumHelpers};
 
 /// Permissions calculator
 pub struct DatabasePermissionQuery<'a> {
@@ -19,7 +19,7 @@ pub struct DatabasePermissionQuery<'a> {
   perspective: &'a User,
   user: Option<Cow<'a, User>>,
   server: Option<Cow<'a, Server>>,
-  channel: Option<Cow<'a, ChannelDB>>,
+  channel: Option<Cow<'a, Channel>>,
   member: Option<Cow<'a, ServerMember>>,
 
   cached_user_permission: Option<PermissionValue>,
@@ -407,7 +407,7 @@ impl<'a> DatabasePermissionQuery<'a> {
   }
 
   /// Use channel
-  pub fn channel(self, channel: &'a ChannelDB) -> DatabasePermissionQuery<'a> {
+  pub fn channel(self, channel: &'a Channel) -> DatabasePermissionQuery<'a> {
     DatabasePermissionQuery { channel: Some(Cow::Borrowed(channel)), ..self }
   }
 
@@ -427,7 +427,7 @@ impl<'a> DatabasePermissionQuery<'a> {
   }
 
   /// Access the underlying server
-  pub fn channel_ref(&'_ self) -> &'_ Option<Cow<'_, ChannelDB>> {
+  pub fn channel_ref(&'_ self) -> &'_ Option<Cow<'_, Channel>> {
     &self.channel
   }
 

@@ -20,6 +20,7 @@ pub struct PreparedChannels {
   pub insert_channel_by_user: PreparedStatement,
   pub groups_list_first_page: PreparedStatement,
   pub groups_list_next_page: PreparedStatement,
+  pub get_channel_by_id: PreparedStatement,
   pub insert_channel_by_recipient: PreparedStatement,
 }
 

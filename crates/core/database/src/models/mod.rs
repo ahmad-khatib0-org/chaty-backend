@@ -1,6 +1,6 @@
 mod channels;
 mod helpers;
-mod serve_members;
+mod server_members;
 mod servers;
 mod users;
 
@@ -8,7 +8,7 @@ use std::ops::Deref;
 
 pub use channels::*;
 pub use helpers::*;
-pub use serve_members::*;
+pub use server_members::*;
 pub use servers::*;
 pub use users::*;
 

@@ -9,6 +9,7 @@ use crate::controller::{ApiController, ApiControllerArgs};
 use crate::email::{create_email_service, EmailService};
 use crate::observability::{MetricsCollector, MetricsCollectorArgs};
 use crate::worker::{WorkerApi, WorkerApiArgs};
+use chaty_cache::Cache;
 use chaty_config::{config, Settings};
 use chaty_database::{DatabaseInfoNoSql, DatabaseInfoSql, DatabaseNoSql, DatabaseSql};
 use chaty_result::errors::{BoxedErr, ErrorType, SimpleError};
@@ -28,6 +29,7 @@ pub struct ApiServer {
   pub(super) email_service: Arc<dyn EmailService>,
   pub(super) metrics: Arc<MetricsCollector>,
   pub(super) worker: Arc<WorkerApi>,
+  pub(super) cache: Arc<Cache>,
 }
 
 impl ApiServer {
@@ -77,6 +79,8 @@ impl ApiServer {
     })
     .await?;
 
+    let cache = Arc::new(Cache::new().await?);
+
     let server = ApiServer {
       nosql_db: Arc::new(nosql_db),
       sql_db: Arc::new(sql_db),
@@ -84,6 +88,7 @@ impl ApiServer {
       broker: Arc::new(broker),
       worker: Arc::new(worker),
       email_service,
+      cache,
       metrics: Arc::new(metrics),
     };
 
@@ -98,6 +103,7 @@ impl ApiServer {
       config: self.config.clone(),
       broker: self.broker.clone(),
       metrics: self.metrics.clone(),
+      cache: self.cache.clone(),
     };
 
     let worker_clone = self.worker.clone();
