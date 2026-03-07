@@ -3,8 +3,6 @@ use std::time::Duration;
 use chaty_config::Settings;
 use chaty_result::errors::{BoxedErr, ErrorType, InternalError};
 use deadpool_redis::{Config, Pool, PoolConfig, Runtime, Timeouts};
-use tracing_subscriber::filter::EnvFilter;
-use tracing_subscriber::layer::SubscriberExt;
 
 pub(super) async fn init_redis(config: &Settings) -> Result<Pool, BoxedErr> {
   let url = config.database.dragonfly.clone();
@@ -28,11 +26,4 @@ pub(super) async fn init_redis(config: &Settings) -> Result<Pool, BoxedErr> {
     msg: "failed to create a redis pool".into(),
     path: "auth.server.init_redis".into(),
   })?)
-}
-
-pub(super) fn setup_logging() {
-  let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-  let subscriber =
-    tracing_subscriber::registry().with(env_filter).with(tracing_subscriber::fmt::layer());
-  tracing::subscriber::set_global_default(subscriber).expect("Failed to set tracing subscriber");
 }

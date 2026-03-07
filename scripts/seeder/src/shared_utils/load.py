@@ -3,7 +3,7 @@ from pathlib import Path
 
 import yaml
 
-from models.config import Config
+from src.models.config import Config
 
 
 def load_config() -> Config:

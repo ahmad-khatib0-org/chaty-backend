@@ -13,7 +13,7 @@ use chaty_database::{DatabaseInfoNoSql, DatabaseInfoSql, DatabaseNoSql, Database
 use chaty_result::errors::{BoxedErr, ErrorType, InternalError};
 use deadpool_redis::Pool;
 
-use crate::init::{init_redis, setup_logging};
+use crate::init::init_redis;
 
 #[derive(Debug)]
 pub struct Cache {
@@ -27,8 +27,6 @@ impl Cache {
   pub async fn new() -> Result<Self, BoxedErr> {
     let config = config().await;
     let redis = init_redis(&config).await?;
-
-    setup_logging();
 
     let ie = |err: BoxedErr, msg: &str| {
       let path = "cache.new".to_string();

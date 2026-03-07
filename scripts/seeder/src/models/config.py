@@ -236,7 +236,7 @@ class FeaturesLimitsCollection(BaseModel):
     if 'global' in data:
       data['global_'] = data.pop('global')
     super().__init__(**data)
-  
+
   class Config:
     populate_by_name = True
 

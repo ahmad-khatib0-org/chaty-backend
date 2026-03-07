@@ -18,7 +18,7 @@ services:
       - scylladb_data:/var/lib/scylla
     command: --smp 1 --memory 750M
     healthcheck:
-      test: ["CMD", "cqlsh", "-e", "DESCRIBE keyspaces"]
+      test: ["CMD", "nodetool", "statusgossip"]
       interval: 15s
       timeout: 5s
       retries: 10

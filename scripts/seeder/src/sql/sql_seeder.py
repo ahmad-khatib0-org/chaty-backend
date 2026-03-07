@@ -1,6 +1,6 @@
-from models.config import Config
-from sql.db import DatabasePool, parse_postgres_url
-from sql.users import seed_users_table
+from src.models.config import Config
+from src.sql.db import DatabasePool, parse_postgres_url
+from src.sql.users import seed_users_table
 
 
 def run_sql_seeders(cfg: Config):
@@ -30,3 +30,11 @@ def run_sql_seeders(cfg: Config):
     if conn:
       DatabasePool.release_conn(conn)
     DatabasePool.close_all()
+
+
+def get_sql_connection(cfg: Config):
+  db_params = parse_postgres_url(cfg.database.postgres)
+  DatabasePool.initialize(minconn=1, maxconn=10, **db_params)
+  conn = DatabasePool.get_conn()
+
+  return conn

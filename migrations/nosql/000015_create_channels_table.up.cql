@@ -10,6 +10,6 @@ CREATE TABLE IF NOT EXISTS channels (
   -- Voice settings
   voice_max_users int,
   -- timestamps
-  created_at timestamp,
-  updated_at timestamp
+  created_at bigint,
+  updated_at bigint
 );

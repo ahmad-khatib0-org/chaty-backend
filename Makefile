@@ -73,6 +73,8 @@ run:
 	docker compose down -v
 	docker compose up -d redpanda
 	sleep 10
+	docker compose up -d scylladb
+	sleep 10
 	docker compose up -d
 	
 	@echo "Waiting for Hydra to be ready..."; \

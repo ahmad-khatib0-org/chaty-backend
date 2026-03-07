@@ -8,12 +8,12 @@ default_language: "en"
 # Note: Using ScyllaDB (Cassandra-compatible NoSQL database)
 database:
   # ScyllaDB connection URL
-  # For development running locally on your machine
+  # For development running locally
   scylladb: "localhost:9042"
   db_name: chaty
   postgres: postgresql://chaty@cockroachdb:26257/chaty?sslmode=disable
   # Dragonfly connection URL (Redis-compatible cache)
-  # For development running locally on your machine
+  # For development running locally
   dragonfly: "redis://dragonfly:6379"
 # Kafka/Redpanda message broker configuration
 kafka:
@@ -45,7 +45,7 @@ oauth:
   # Admin endpoint of Hydra authorization server
   admin_url: "http://hydra:4445"
   # Client ID for this application
-  client_id: "97b24fb1-a1a5-4e98-a388-ec0cf93fd13e"
+  client_id: "596a07a9-e58c-4556-b156-63061e50e3da"
   # Client secret for this application
   client_secret: ""
   # Redirect URI after successful authentication
