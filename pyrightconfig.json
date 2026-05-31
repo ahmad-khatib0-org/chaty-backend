@@ -1,0 +1,7 @@
+{
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Linux",
+  "typeCheckingMode": "standard",
+  "include": ["scripts/seeder"],
+  "exclude": ["**/node_modules", "**/__pycache__"]
+}

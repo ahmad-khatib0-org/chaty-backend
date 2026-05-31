@@ -24,4 +24,10 @@ pub trait ServerMembersRepository: Sync + Send {
 
   /// Check whether this member is in timeout
   fn server_members_is_member_in_timeout(&self, member: &ServerMember) -> bool;
+
+  async fn server_members_get_by_ids(
+    &self,
+    server_id: &str,
+    user_ids: &[String],
+  ) -> Result<Vec<ServerMember>, DBError>;
 }

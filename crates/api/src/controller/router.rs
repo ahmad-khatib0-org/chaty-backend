@@ -1,15 +1,17 @@
 use chaty_proto::{
   chaty_service_server::ChatyService, ChannelsGetRequest, ChannelsGetResponse, GroupsCreateRequest,
-  GroupsCreateResponse, GroupsListRequest, GroupsListResponse, SearchUsernamesRequest,
-  SearchUsernamesResponse, UsersCreateRequest, UsersCreateResponse, UsersEmailConfirmationRequest,
-  UsersEmailConfirmationResponse, UsersForgotPasswordRequest, UsersForgotPasswordResponse,
-  UsersLoginRequest, UsersLoginResponse, UsersResetPasswordRequest, UsersResetPasswordResponse,
+  GroupsCreateResponse, GroupsListRequest, GroupsListResponse, MessagesGetRequest,
+  MessagesGetResponse, SearchUsernamesRequest, SearchUsernamesResponse, UsersCreateRequest,
+  UsersCreateResponse, UsersEmailConfirmationRequest, UsersEmailConfirmationResponse,
+  UsersForgotPasswordRequest, UsersForgotPasswordResponse, UsersLoginRequest, UsersLoginResponse,
+  UsersResetPasswordRequest, UsersResetPasswordResponse,
 };
 use tonic::{Request, Response, Status};
 
 use crate::controller::{
   channels::channels_get::channels_get,
   groups::{groups_create::groups_create, groups_list::groups_list},
+  messages::messages_get::messages_get,
   search::search_usernames::search_usernames,
   users::{
     users_create::users_create, users_email_confirmation::users_email_confirmation,
@@ -80,5 +82,12 @@ impl ChatyService for ApiController {
     request: Request<SearchUsernamesRequest>,
   ) -> Result<Response<SearchUsernamesResponse>, Status> {
     search_usernames(self, request).await
+  }
+
+  async fn messages_get(
+    &self,
+    request: Request<MessagesGetRequest>,
+  ) -> Result<Response<MessagesGetResponse>, Status> {
+    messages_get(self, request).await
   }
 }

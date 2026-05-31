@@ -42,6 +42,8 @@ pub struct MetricsCollector {
   pub groups_list_failed: Counter<u64>,
   pub channels_get_total: Counter<u64>,
   pub channels_get_failed: Counter<u64>,
+  pub messages_get_total: Counter<u64>,
+  pub messages_get_failed: Counter<u64>,
   pub search_usernames_total: Counter<u64>,
   pub search_usernames_failed: Counter<u64>,
   pub db_operations_total: Counter<u64>,
@@ -79,6 +81,8 @@ impl Clone for MetricsCollector {
       groups_list_failed: self.groups_list_failed.clone(),
       channels_get_total: self.channels_get_total.clone(),
       channels_get_failed: self.channels_get_failed.clone(),
+      messages_get_total: self.messages_get_total.clone(),
+      messages_get_failed: self.messages_get_failed.clone(),
       search_usernames_total: self.search_usernames_total.clone(),
       search_usernames_failed: self.search_usernames_failed.clone(),
       db_operations_total: self.db_operations_total.clone(),
@@ -205,6 +209,15 @@ impl MetricsCollector {
       .with_description("Total failed channel get requests")
       .build();
 
+    // --- Messages Metrics ---
+    let messages_get_total =
+      meter.u64_counter("api_messages_get").with_description("Total messages get requests").build();
+
+    let messages_get_failed = meter
+      .u64_counter("api_messages_get_failed")
+      .with_description("Total failed messages get requests")
+      .build();
+
     // --- Search Metrics ---
     let search_usernames_total = meter
       .u64_counter("api_search_usernames")
@@ -279,6 +292,8 @@ impl MetricsCollector {
       groups_list_failed,
       channels_get_total,
       channels_get_failed,
+      messages_get_total,
+      messages_get_failed,
       search_usernames_total,
       search_usernames_failed,
       db_operations_total,
@@ -422,6 +437,15 @@ impl MetricsCollector {
   pub fn record_channels_get_failure(&self) {
     self.channels_get_total.add(1, &[]);
     self.channels_get_failed.add(1, &[]);
+  }
+
+  pub fn record_messages_get_success(&self) {
+    self.messages_get_total.add(1, &[]);
+  }
+
+  pub fn record_messages_get_failure(&self) {
+    self.messages_get_total.add(1, &[]);
+    self.messages_get_failed.add(1, &[]);
   }
 
   pub fn record_search_usernames_success(&self) {

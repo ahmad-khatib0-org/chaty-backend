@@ -1,6 +1,7 @@
 pub(crate) mod audit;
 mod channels;
 mod groups;
+mod messages;
 mod router;
 mod search;
 mod users;

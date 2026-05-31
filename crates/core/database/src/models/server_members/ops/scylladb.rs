@@ -97,4 +97,40 @@ impl ServerMembersRepository for ScyllaDb {
       false
     }
   }
+
+  async fn server_members_get_by_ids(
+    &self,
+    server_id: &str,
+    user_ids: &[String],
+  ) -> Result<Vec<ServerMember>, DBError> {
+    let path = "database.server_members.server_members_get_by_ids".to_string();
+
+    let de = |err: BoxedErr, msg: &str| {
+      let err_type = ErrorType::DBSelectError;
+      DBError { path: path.clone(), err_type, msg: msg.to_string(), err }
+    };
+
+    if user_ids.is_empty() {
+      return Ok(vec![]);
+    }
+
+    let rows = self
+      .db
+      .execute_unpaged(
+        &self.prepared.server_members.get_server_members_by_ids,
+        (server_id, user_ids),
+      )
+      .await
+      .map_err(|e| de(Box::new(e), "failed to fetch server members"))?
+      .into_rows_result()
+      .map_err(|e| de(Box::new(e), "failed to parse rows"))?;
+
+    let members: Vec<ServerMember> = rows
+      .rows::<ServerMember>()
+      .map_err(|e| de(Box::new(e), "failed to iterate over rows"))?
+      .filter_map(|row| row.ok())
+      .collect();
+
+    Ok(members)
+  }
 }

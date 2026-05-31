@@ -189,6 +189,19 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to prepare get_server_ids_by_user_id  statment: {}", e))?;
 
+        let get_server_members_by_ids = session
+          .prepare(
+            r#"
+              SELECT 
+                user_id, username, avatar, nickname, joined_at,
+                roles, timeout, can_publish, can_receive 
+              FROM server_members 
+              WHERE server_id = ? AND user_id IN ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_server_members_by_ids: {}", e))?;
+
         let get_server_by_id = session
           .prepare(
             r#"
@@ -217,6 +230,108 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to prepare get_channel_by_id statment: {}", e))?;
 
+        let get_messages_by_channel_id = session
+          .prepare(
+            r#"
+              SELECT 
+                id, channel_id, author_id, nonce, webhook, content, "system",
+                attachments, embeds, mentions, role_mentions, replies,
+                reactions, interactions, masquerade, pinned, flags,
+                edited_at, created_at
+              FROM messages 
+              WHERE channel_id = ? 
+              ORDER BY id DESC 
+              LIMIT ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_messages_by_channel_id: {}", e))?;
+
+        let get_messages_by_channel_id_gt = session
+          .prepare(
+            r#"
+              SELECT 
+                id, channel_id, author_id, nonce, webhook, content, "system",
+                attachments, embeds, mentions, role_mentions, replies,
+                reactions, interactions, masquerade, pinned, flags,
+                edited_at, created_at
+              FROM messages 
+              WHERE channel_id = ? AND id > ?
+              ORDER BY id ASC 
+              LIMIT ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_messages_by_channel_id_gt: {}", e))?;
+
+        let get_messages_by_channel_id_gte = session
+          .prepare(
+            r#"
+              SELECT 
+                id, channel_id, author_id, nonce, webhook, content, "system",
+                attachments, embeds, mentions, role_mentions, replies,
+                reactions, interactions, masquerade, pinned, flags,
+                edited_at, created_at
+              FROM messages 
+              WHERE channel_id = ? AND id >= ?
+              ORDER BY id ASC 
+              LIMIT ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_messages_by_channel_id_gte: {}", e))?;
+
+        let get_messages_by_channel_id_lt = session
+          .prepare(
+            r#"
+              SELECT 
+                id, channel_id, author_id, nonce, webhook, content, "system",
+                attachments, embeds, mentions, role_mentions, replies,
+                reactions, interactions, masquerade, pinned, flags,
+                edited_at, created_at
+              FROM messages 
+              WHERE channel_id = ? AND id < ?
+              ORDER BY id DESC 
+              LIMIT ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_messages_by_channel_id_lt: {}", e))?;
+
+        let get_messages_by_channel_id_lte = session
+          .prepare(
+            r#"
+              SELECT 
+                id, channel_id, author_id, nonce, webhook, content, "system",
+                attachments, embeds, mentions, role_mentions, replies,
+                reactions, interactions, masquerade, pinned, flags,
+                edited_at, created_at
+              FROM messages 
+              WHERE channel_id = ? AND id <= ?
+              ORDER BY id DESC 
+              LIMIT ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_messages_by_channel_id_lte: {}", e))?;
+
+        let get_messages_by_channel_id_range = session
+          .prepare(
+            r#"
+              SELECT 
+                id, channel_id, author_id, nonce, webhook, content, "system",
+                attachments, embeds, mentions, role_mentions, replies,
+                reactions, interactions, masquerade, pinned, flags,
+                edited_at, created_at
+              FROM messages 
+              WHERE channel_id = ? AND id > ? AND id < ?
+              ORDER BY id DESC 
+              LIMIT ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_messages_by_channel_id_range: {}", e))?;
+
         Ok(DatabaseNoSql::Scylladb(ScyllaDb {
           db: session,
           prepared: Prepared {
@@ -232,6 +347,15 @@ impl DatabaseInfoNoSql {
             server_members: PreparedServerMembers {
               get_server_ids_by_user_id,
               get_server_member_by_id,
+              get_server_members_by_ids,
+            },
+            messages: PreparedMessages {
+              get_messages_by_channel_id,
+              get_messages_by_channel_id_gt,
+              get_messages_by_channel_id_gte,
+              get_messages_by_channel_id_lt,
+              get_messages_by_channel_id_lte,
+              get_messages_by_channel_id_range,
             },
           },
         }))

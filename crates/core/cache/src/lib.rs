@@ -1,6 +1,7 @@
 pub mod channels;
 mod helpers;
 mod init;
+pub mod presence;
 pub mod users;
 
 use std::{

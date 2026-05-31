@@ -1,17 +1,16 @@
 import subprocess
 
 from cassandra.cluster import Cluster
+from psycopg2.extensions import connection
 
 from src.nosql.groups import seed_messages_groups
 from src.models.config import Config
-from src.sql.sql_seeder import get_sql_connection
 
 
-def run_nosql_seeders(cfg: Config, ):
+def run_nosql_seeders(cfg: Config, sql_connection: connection):
   cluster = Cluster([get_scylla_ip()])
   session = cluster.connect("chaty")
 
-  sql_connection = get_sql_connection(cfg)
   seed_messages_groups(session, sql_connection)
 
 

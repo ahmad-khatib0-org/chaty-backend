@@ -30,13 +30,13 @@ impl From<OverrideField> for Override {
 
 impl From<OverrideFieldProto> for Override {
   fn from(v: OverrideFieldProto) -> Self {
-    Self { allow: v.allow as u64, deny: v.deny as u64 }
+    Self { allow: v.a as u64, deny: v.d as u64 }
   }
 }
 
 impl From<&OverrideFieldProto> for Override {
   fn from(v: &OverrideFieldProto) -> Self {
-    Self { allow: v.allow as u64, deny: v.deny as u64 }
+    Self { allow: v.a as u64, deny: v.d as u64 }
   }
 }
 
@@ -66,6 +66,6 @@ impl From<Override> for OverrideField {
 
 impl From<Override> for OverrideFieldProto {
   fn from(v: Override) -> Self {
-    Self { allow: v.allow as i64, deny: v.deny as i64 }
+    Self { a: v.allow as i64, d: v.deny as i64 }
   }
 }

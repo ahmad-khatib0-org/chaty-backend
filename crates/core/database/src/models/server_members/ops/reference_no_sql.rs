@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use async_trait::async_trait;
 use chaty_proto::ServerMember;
 use chaty_result::errors::{DBError, ErrorType};
@@ -47,5 +49,27 @@ impl ServerMembersRepository for ReferenceNoSqlDb {
     } else {
       false
     }
+  }
+
+  async fn server_members_get_by_ids(
+    &self,
+    server_id: &str,
+    user_ids: &[String],
+  ) -> Result<Vec<ServerMember>, DBError> {
+    if user_ids.is_empty() {
+      return Ok(vec![]);
+    }
+
+    let members = self.server_members.lock().await;
+
+    let user_ids_set: HashSet<_> = user_ids.iter().collect();
+
+    let found_members: Vec<ServerMember> = members
+      .iter()
+      .filter(|srv| srv.1.server_id == server_id && user_ids_set.contains(&srv.1.user_id))
+      .map(|srv| srv.1.clone())
+      .collect();
+
+    Ok(found_members)
   }
 }

@@ -7,6 +7,7 @@ pub struct Prepared {
   pub servers: PreparedServers,
   pub channels: PreparedChannels,
   pub server_members: PreparedServerMembers,
+  pub messages: PreparedMessages,
 }
 
 #[derive(Debug)]
@@ -28,6 +29,17 @@ pub struct PreparedChannels {
 pub struct PreparedServerMembers {
   pub get_server_ids_by_user_id: PreparedStatement,
   pub get_server_member_by_id: PreparedStatement,
+  pub get_server_members_by_ids: PreparedStatement,
+}
+
+#[derive(Debug)]
+pub struct PreparedMessages {
+  pub get_messages_by_channel_id: PreparedStatement,
+  pub get_messages_by_channel_id_gt: PreparedStatement, // newer than (id >)
+  pub get_messages_by_channel_id_gte: PreparedStatement, // newer or equal (id >=)
+  pub get_messages_by_channel_id_lt: PreparedStatement, // older than (id <)
+  pub get_messages_by_channel_id_lte: PreparedStatement, // older or equal (id <=)
+  pub get_messages_by_channel_id_range: PreparedStatement, // between (id > x AND id < y)
 }
 
 /// Scylladb implementation

@@ -1,5 +1,6 @@
 mod channels;
 mod helpers;
+mod messages;
 mod server_members;
 mod servers;
 mod users;
@@ -8,6 +9,7 @@ use std::ops::Deref;
 
 pub use channels::*;
 pub use helpers::*;
+pub use messages::*;
 pub use server_members::*;
 pub use servers::*;
 pub use users::*;
@@ -22,7 +24,13 @@ use crate::{DatabaseSql, ReferenceSqlDb};
 pub trait AbstractDatabaseSql: Sync + Send + UsersRepository {}
 
 pub trait AbstractDatabaseNoSql:
-  Sync + Send + ChannelsRepository + ServerMembersRepository + ServersRepository + HelpersRepository
+  Sync
+  + Send
+  + ChannelsRepository
+  + ServerMembersRepository
+  + ServersRepository
+  + MessagesRepository
+  + HelpersRepository
 {
 }
 

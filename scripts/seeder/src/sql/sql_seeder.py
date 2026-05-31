@@ -1,35 +1,16 @@
+from psycopg2.extensions import connection
+
 from src.models.config import Config
 from src.sql.db import DatabasePool, parse_postgres_url
 from src.sql.users import seed_users_table
 
 
-def run_sql_seeders(cfg: Config):
+def run_sql_seeders(cfg: Config, sql_connection: connection):
   """
-  Initialize database connection pool and run all SQL seeders.
-  Wraps seeders in transaction for automatic rollback on failure.
+    Run all SQL seeders.
   """
 
-  conn = None
-  try:
-    db_params = parse_postgres_url(cfg.database.postgres)
-    DatabasePool.initialize(minconn=1, maxconn=10, **db_params)
-    conn = DatabasePool.get_conn()
-
-    # Run all seeders with the connection
-    seed_users_table(conn, cfg)
-
-    # Commit the transaction
-    conn.commit()
-    print("Database seeding completed successfully")
-
-  except Exception as e:
-    if conn:
-      conn.rollback()
-    raise RuntimeError(f"Failed to run SQL seeders: {e}")
-  finally:
-    if conn:
-      DatabasePool.release_conn(conn)
-    DatabasePool.close_all()
+  seed_users_table(sql_connection, cfg)
 
 
 def get_sql_connection(cfg: Config):
