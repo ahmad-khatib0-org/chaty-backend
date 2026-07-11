@@ -133,4 +133,37 @@ impl ServerMembersRepository for ScyllaDb {
 
     Ok(members)
   }
+
+  /// Get the count of servers a user is a member of
+  async fn server_members_count_for_user(&self, user_id: &str) -> Result<i64, DBError> {
+    let path = "database.server_members.server_members_count_for_user".to_string();
+
+    let de = |err: BoxedErr, msg: &str| {
+      let err_type = ErrorType::DBSelectError;
+      return DBError { path: path.clone(), err_type, msg: msg.to_string(), err };
+    };
+
+    // Execute the count query
+    let rows = self
+      .db
+      .execute_unpaged(&self.prepared.server_members.get_server_members_count, (user_id,))
+      .await
+      .map_err(|e| de(Box::new(e), "failed to fetch server membership count"))?
+      .into_rows_result()
+      .map_err(|e| de(Box::new(e), "failed to parse rows"))?;
+
+    // Extract the count from the first row
+    let mut typed_rows =
+      rows.rows::<(i64,)>().map_err(|e| de(Box::new(e), "failed to iterate over rows"))?;
+
+    let count = typed_rows
+      .next()
+      .ok_or_else(|| {
+        de(Box::new(Error::new(ErrorKind::NotFound, "count not found")), "count not found")
+      })?
+      .map_err(|e| de(Box::new(e), "deserialization failed"))?
+      .0;
+
+    Ok(count)
+  }
 }

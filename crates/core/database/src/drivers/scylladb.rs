@@ -13,6 +13,7 @@ pub struct Prepared {
 #[derive(Debug)]
 pub struct PreparedServers {
   pub get_server_by_id: PreparedStatement,
+  pub insert_server: PreparedStatement,
 }
 
 #[derive(Debug)]
@@ -30,6 +31,7 @@ pub struct PreparedServerMembers {
   pub get_server_ids_by_user_id: PreparedStatement,
   pub get_server_member_by_id: PreparedStatement,
   pub get_server_members_by_ids: PreparedStatement,
+  pub get_server_members_count: PreparedStatement,
 }
 
 #[derive(Debug)]

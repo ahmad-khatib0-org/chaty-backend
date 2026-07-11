@@ -12,7 +12,94 @@ use chaty_result::{
 
 use scylla::statement::batch::Batch;
 
-use crate::{ChannelsRepository, ScyllaDb};
+use crate::{ChannelHelpers, ChannelsRepository, ScyllaDb};
+
+#[async_trait()]
+impl ChannelHelpers for ScyllaDb {
+  async fn channels_insert_channel_and_channel_by_user(
+    &self,
+    channel: &Channel,
+    user_id: &str,
+  ) -> Result<(), DBError> {
+    let path = "database.channels.insert_channel_and_channel_by_user".to_string();
+
+    let de = |err: BoxedErr, msg: &str| {
+      let path = path.clone();
+      return DBError { path, err_type: ErrorType::DBInsertError, msg: msg.into(), err };
+    };
+
+    let created_at = channel.created_at;
+    let updated_at = channel.updated_at;
+
+    // Create a Logged Batch for atomic-like dual-write
+    let mut batch = Batch::default();
+    batch.append_statement(self.prepared.channels.insert_channel.clone());
+    batch.append_statement(self.prepared.channels.insert_channel_by_user.clone());
+
+    self
+      .db
+      .batch(
+        &batch,
+        (
+          (
+            &channel.id,
+            &channel.channel_type,
+            &channel.saved,
+            &channel.direct,
+            &channel.group,
+            &channel.text,
+            &created_at,
+            &updated_at,
+          ),
+          (
+            user_id,
+            &channel.id,
+            &channel.channel_type,
+            &channel.saved,
+            &channel.direct,
+            &channel.group,
+            &channel.text,
+            &created_at,
+            &updated_at,
+          ),
+        ),
+      )
+      .await
+      .map_err(|err| de(Box::new(err), "failed to insert a channel and a channel_by_user"))?;
+
+    Ok(())
+  }
+
+  async fn channels_insert_channel_by_user(
+    &self,
+    path: &str,
+    recipients: Vec<String>,
+    channel_id: &str,
+    channel_type: &str,
+    created_at: i64,
+  ) -> Result<(), DBError> {
+    let de = |err: BoxedErr, msg: &str| {
+      let path = path.to_string();
+      return DBError { path, err_type: ErrorType::DBInsertError, msg: msg.into(), err };
+    };
+
+    let mut batch = Batch::default();
+    batch.append_statement(self.prepared.channels.insert_channel_by_recipient.clone());
+
+    let recipient_params: Vec<_> = recipients
+      .iter()
+      .map(|recipient_id| (recipient_id, channel_id, channel_type, created_at))
+      .collect();
+
+    self
+      .db
+      .batch(&batch, recipient_params)
+      .await
+      .map_err(|err| de(Box::new(err), "failed insert a channel_by_user"))?;
+
+    Ok(())
+  }
+}
 
 #[async_trait()]
 impl ChannelsRepository for ScyllaDb {
@@ -28,49 +115,18 @@ impl ChannelsRepository for ScyllaDb {
       return Err(DBError { path, err_type: ErrorType::InvalidData, msg, ..Default::default() });
     }
 
-    let de = |err: BoxedErr, msg: &str| {
-      let path = path.clone();
-      return DBError { path, err_type: ErrorType::DBInsertError, msg: msg.into(), err };
-    };
-
-    let created_at = channel.created_at;
-    let updated_at = channel.updated_at;
-
-    // Create a Logged Batch for atomic-like dual-write
-    let mut batch1 = Batch::default();
-    batch1.append_statement(self.prepared.channels.insert_channel.clone());
-    batch1.append_statement(self.prepared.channels.insert_channel_by_user.clone());
-
-    let mut batch2 = Batch::default();
-    batch2.append_statement(self.prepared.channels.insert_channel_by_recipient.clone());
-
-    let recipient_params: Vec<_> = channel
-      .group
-      .as_ref()
-      .unwrap()
-      .recipients
-      .iter()
-      .map(|recipient_id| (recipient_id, &channel.id, &channel.channel_type, &created_at))
-      .collect();
-
     let group = channel.group.as_ref().unwrap();
-    self
-      .db
-      .batch(
-        &batch1,
-        (
-          (&channel.id, &channel.channel_type, group, &created_at, &updated_at),
-          (&group.user_id, &channel.id, &channel.channel_type, group, &created_at, &updated_at),
-        ),
-      )
-      .await
-      .map_err(|err| de(Box::new(err), "failed to insert a channel, batch 1"))?;
 
+    self.channels_insert_channel_and_channel_by_user(channel, &group.user_id).await?;
     self
-      .db
-      .batch(&batch2, recipient_params)
-      .await
-      .map_err(|err| de(Box::new(err), "failed to create group (batch2 recipients)"))?;
+      .channels_insert_channel_by_user(
+        &path,
+        group.recipients.clone(),
+        &channel.id,
+        &channel.channel_type,
+        channel.created_at,
+      )
+      .await?;
 
     Ok(())
   }
@@ -183,5 +239,27 @@ impl ChannelsRepository for ScyllaDb {
       .map_err(|e| de(Box::new(e), "failed to iterate over rows"))?
       .map(|row_res| row_res.map(|(id,)| id).map_err(|e| de(Box::new(e), "deserialization failed")))
       .collect()
+  }
+
+  async fn channels_insert(&self, channel: &Channel, user_id: &str) -> Result<(), DBError> {
+    let path = "database.channels.channels_insert";
+
+    if channel.group.is_some() || channel.direct.is_some() {
+      if channel.group.is_some() {
+        let group = channel.group.as_ref().unwrap();
+        let p = (group.recipients.clone(), &channel.id, &channel.channel_type);
+        self.channels_insert_channel_by_user(&path, p.0, &p.1, &p.2, channel.created_at).await?;
+      }
+
+      if channel.direct.is_some() {
+        let direct = channel.direct.as_ref().unwrap();
+        let p = (direct.recipients.clone(), &channel.id, &channel.channel_type);
+        self.channels_insert_channel_by_user(&path, p.0, &p.1, &p.2, channel.created_at).await?;
+      }
+    }
+
+    self.channels_insert_channel_and_channel_by_user(channel, user_id).await?;
+
+    Ok(())
   }
 }

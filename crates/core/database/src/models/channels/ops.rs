@@ -10,6 +10,24 @@ use chaty_proto::{Channel, GroupsListItem};
 use chaty_result::{context::Context, errors::DBError};
 
 #[async_trait]
+pub trait ChannelHelpers: Sync + Send {
+  async fn channels_insert_channel_and_channel_by_user(
+    &self,
+    channel: &Channel,
+    user_id: &str,
+  ) -> Result<(), DBError>;
+
+  async fn channels_insert_channel_by_user(
+    &self,
+    path: &str,
+    recipients: Vec<String>,
+    channel_id: &str,
+    channel_type: &str,
+    created_at: i64,
+  ) -> Result<(), DBError>;
+}
+
+#[async_trait]
 pub trait ChannelsRepository: Sync + Send {
   /// Insert a channel into database
   async fn channels_groups_create(
@@ -39,4 +57,6 @@ pub trait ChannelsRepository: Sync + Send {
     user_id: &str,
     channel_types: &[&str], // e.g., ["group", "direct_message"]
   ) -> Result<Vec<String>, DBError>;
+
+  async fn channels_insert(&self, channel: &Channel, user_id: &str) -> Result<(), DBError>;
 }

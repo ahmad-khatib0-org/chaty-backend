@@ -1,7 +1,9 @@
 use chaty_proto::{
-  chaty_service_server::ChatyService, ChannelsGetRequest, ChannelsGetResponse, GroupsCreateRequest,
-  GroupsCreateResponse, GroupsListRequest, GroupsListResponse, MessagesGetRequest,
-  MessagesGetResponse, SearchUsernamesRequest, SearchUsernamesResponse, UsersCreateRequest,
+  chaty_service_server::ChatyService, search_message_response, ChannelsGetRequest,
+  ChannelsGetResponse, GroupsCreateRequest, GroupsCreateResponse, GroupsListRequest,
+  GroupsListResponse, MessagesGetRequest, MessagesGetResponse, SearchMessageRequest,
+  SearchMessageResponse, SearchMessageResponseData, SearchUsernamesRequest,
+  SearchUsernamesResponse, ServersCreateRequest, ServersCreateResponse, UsersCreateRequest,
   UsersCreateResponse, UsersEmailConfirmationRequest, UsersEmailConfirmationResponse,
   UsersForgotPasswordRequest, UsersForgotPasswordResponse, UsersLoginRequest, UsersLoginResponse,
   UsersResetPasswordRequest, UsersResetPasswordResponse,
@@ -13,6 +15,7 @@ use crate::controller::{
   groups::{groups_create::groups_create, groups_list::groups_list},
   messages::messages_get::messages_get,
   search::search_usernames::search_usernames,
+  servers::servers_create::servers_create,
   users::{
     users_create::users_create, users_email_confirmation::users_email_confirmation,
     users_forgot_password::users_forgot_password, users_login::users_login,
@@ -89,5 +92,24 @@ impl ChatyService for ApiController {
     request: Request<MessagesGetRequest>,
   ) -> Result<Response<MessagesGetResponse>, Status> {
     messages_get(self, request).await
+  }
+
+  async fn servers_create(
+    &self,
+    request: Request<ServersCreateRequest>,
+  ) -> Result<Response<ServersCreateResponse>, Status> {
+    servers_create(self, request).await
+  }
+
+  // TODO: implement rpc
+  async fn search_message(
+    &self,
+    request: Request<SearchMessageRequest>,
+  ) -> Result<Response<SearchMessageResponse>, Status> {
+    Ok(Response::new(SearchMessageResponse {
+      response: Some(search_message_response::Response::Data(SearchMessageResponseData {
+        ..Default::default()
+      })),
+    }))
   }
 }

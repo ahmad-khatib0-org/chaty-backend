@@ -30,4 +30,6 @@ pub trait ServerMembersRepository: Sync + Send {
     server_id: &str,
     user_ids: &[String],
   ) -> Result<Vec<ServerMember>, DBError>;
+
+  async fn server_members_count_for_user(&self, user_id: &str) -> Result<i64, DBError>;
 }

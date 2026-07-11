@@ -1,8 +1,14 @@
-use std::io::{Error, ErrorKind};
+use std::{
+  io::{Error, ErrorKind},
+  sync::Arc,
+};
 
 use async_trait::async_trait;
 use chaty_proto::Server;
-use chaty_result::errors::{BoxedErr, DBError, ErrorType};
+use chaty_result::{
+  context::Context,
+  errors::{BoxedErr, DBError, ErrorType},
+};
 
 use crate::{ScyllaDb, ServersRepository};
 
@@ -36,5 +42,22 @@ impl ServersRepository for ScyllaDb {
       .map_err(|e| de(Box::new(e), "deserialization failed"))?;
 
     Ok(server_db)
+  }
+
+  async fn servers_insert(&self, ctx: Arc<Context>, server: &Server) -> Result<(), DBError> {
+    let path = "database.servers.insert_server".to_string();
+
+    let de = |err: BoxedErr, msg: &str| {
+      let err_type = ErrorType::DBInsertError;
+      return DBError { path: path.clone(), err_type, msg: msg.to_string(), err };
+    };
+
+    self
+      .db
+      .execute_unpaged(&self.prepared.servers.insert_server, server)
+      .await
+      .map_err(|e| de(Box::new(e), "failed to insert server"))?;
+
+    Ok(())
   }
 }

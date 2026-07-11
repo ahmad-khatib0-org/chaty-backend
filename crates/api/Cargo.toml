@@ -15,7 +15,6 @@ chaty-permission = { version = "0.1.3", path = "../core/permission" }
 chaty-result = { version = "0.1.3", path = "../core/result", features = [
   "audit",
 ] }
-
 chaty-proto = ">=0.0.1, <1.0"
 rdkafka = { version = "0.38.0", features = ["tokio"] }
 tokio = { version = "1.48.0", features = ["full"] }

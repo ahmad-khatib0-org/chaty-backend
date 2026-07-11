@@ -1,6 +1,10 @@
 use async_trait::async_trait;
 use chaty_proto::Server;
-use chaty_result::errors::{DBError, ErrorType};
+use chaty_result::{
+  context::Context,
+  errors::{DBError, ErrorType},
+};
+use std::sync::Arc;
 
 use crate::{ReferenceNoSqlDb, ServersRepository};
 
@@ -15,5 +19,15 @@ impl ServersRepository for ReferenceNoSqlDb {
       path: "database.servers.servers_get_server_by_id".to_string(),
       ..Default::default()
     })
+  }
+
+  async fn servers_insert(&self, _ctx: Arc<Context>, server: &Server) -> Result<(), DBError> {
+    let mut servers = self.servers.lock().await;
+
+    if servers.get(&server.id).is_none() {
+      servers.insert(server.id.clone(), server.clone());
+    }
+
+    Ok(())
   }
 }

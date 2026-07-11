@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS channels (
   -- Common fields
   id text PRIMARY KEY, -- ULID
-  channel_type text, -- 'saved_messages', 'direct_message', 'group', 'text_channel'
+  channel_type text, -- 'saved_messages', 'direct_message', 'group', 'text'
   -- channel types
   saved frozen<channel_saved_messages_type>,
   direct frozen<channel_direct_message_type>,

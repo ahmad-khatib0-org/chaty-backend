@@ -40,6 +40,8 @@ pub struct MetricsCollector {
   pub groups_create_failed: Counter<u64>,
   pub groups_list_total: Counter<u64>,
   pub groups_list_failed: Counter<u64>,
+  pub servers_create_total: Counter<u64>,
+  pub servers_create_failed: Counter<u64>,
   pub channels_get_total: Counter<u64>,
   pub channels_get_failed: Counter<u64>,
   pub messages_get_total: Counter<u64>,
@@ -79,6 +81,8 @@ impl Clone for MetricsCollector {
       groups_create_failed: self.groups_create_failed.clone(),
       groups_list_total: self.groups_list_total.clone(),
       groups_list_failed: self.groups_list_failed.clone(),
+      servers_create_total: self.servers_create_total.clone(),
+      servers_create_failed: self.servers_create_failed.clone(),
       channels_get_total: self.channels_get_total.clone(),
       channels_get_failed: self.channels_get_failed.clone(),
       messages_get_total: self.messages_get_total.clone(),
@@ -200,6 +204,15 @@ impl MetricsCollector {
       .with_description("Total failed group list requests")
       .build();
 
+    // --- Servers Metrics ---
+    let servers_create_total =
+      meter.u64_counter("api_servers_create").with_description("Total server creations").build();
+
+    let servers_create_failed = meter
+      .u64_counter("api_servers_create_failed")
+      .with_description("Total failed server creations")
+      .build();
+
     // --- Channels Metrics ---
     let channels_get_total =
       meter.u64_counter("api_channels_get").with_description("Total channel get requests").build();
@@ -290,6 +303,8 @@ impl MetricsCollector {
       groups_create_failed,
       groups_list_total,
       groups_list_failed,
+      servers_create_total,
+      servers_create_failed,
       channels_get_total,
       channels_get_failed,
       messages_get_total,
@@ -428,6 +443,15 @@ impl MetricsCollector {
   pub fn record_groups_list_failure(&self) {
     self.groups_list_total.add(1, &[]);
     self.groups_list_failed.add(1, &[]);
+  }
+
+  pub fn record_servers_create_success(&self) {
+    self.servers_create_total.add(1, &[]);
+  }
+
+  pub fn record_servers_create_failure(&self) {
+    self.servers_create_total.add(1, &[]);
+    self.servers_create_failed.add(1, &[]);
   }
 
   pub fn record_channels_get_success(&self) {

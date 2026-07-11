@@ -72,4 +72,13 @@ impl ServerMembersRepository for ReferenceNoSqlDb {
 
     Ok(found_members)
   }
+
+  async fn server_members_count_for_user(&self, user_id: &str) -> Result<i64, DBError> {
+    let members = self.server_members.lock().await;
+
+    let count: Vec<&String> =
+      members.iter().filter(|srv| srv.1.user_id == user_id).map(|srv| srv.0).collect();
+
+    Ok(count.len() as i64)
+  }
 }

@@ -4,6 +4,7 @@ mod groups;
 mod messages;
 mod router;
 mod search;
+mod servers;
 mod users;
 
 use std::time::Duration;

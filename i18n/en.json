@@ -370,10 +370,21 @@
   {
     "id": "search.search_usernames.invalid_limit",
     "tr": "Search limit must be between 1 and 5"
-  }
-,
+  },
   {
     "id": "groups.list.success",
     "tr": "Groups retrieved successfully"
+  },
+  {
+    "id": "servers.name.length",
+    "tr": "Server name must be between {{Min}} and {{Max}} characters long"
+  },
+  {
+    "id": "servers.description.max_length",
+    "tr": "Server description must not exceeds {{Max}} characters long"
+  },
+  {
+    "id": "servers.create.too_many_servers",
+    "tr": "You have exceeded the max count of servers you can to create"
   }
 ]

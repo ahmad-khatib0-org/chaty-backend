@@ -113,9 +113,9 @@ impl DatabaseInfoNoSql {
           .prepare(
             r#" 
               INSERT INTO channels (
-                id, channel_type, "group", created_at, updated_at
+                id, channel_type, saved, direct, "group", "text", created_at, updated_at
               ) 
-              VALUES (?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             "#,
           )
           .await
@@ -125,9 +125,9 @@ impl DatabaseInfoNoSql {
           .prepare(
             r#"
               INSERT INTO channels_by_user (
-                user_id, channel_id, channel_type, "group", created_at, updated_at
+                user_id, channel_id, channel_type, saved, direct, "group", "text", created_at, updated_at
               ) 
-              VALUES (?, ?, ?, ?, ?, ?)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
           )
           .await
@@ -202,6 +202,11 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to prepare get_server_members_by_ids: {}", e))?;
 
+        let get_server_members_count = session
+          .prepare(r#" SELECT COUNT(*) FROM server_members_by_user WHERE user_id = ? "#)
+          .await
+          .map_err(|e| format!("Failed to prepare get_server_members_count: {}", e))?;
+
         let get_server_by_id = session
           .prepare(
             r#"
@@ -218,14 +223,28 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to prepare get_server_by_id statment: {}", e))?;
 
+        let insert_server = session
+          .prepare(
+            r#"
+              INSERT INTO servers (
+                id, owner_id, name, description, default_permissions,
+                icon, banner, flags, nsfw, analytics, discoverable,
+                roles, categories, system_messages, stats, channels,
+                created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare insert_server: {}", e))?;
+
         let get_channel_by_id = session
           .prepare(
             r#"
-          SELECT 
-            id, channel_type, saved, direct, group, text, voice_max_users, created_at, updated_at 
-          FROM channels 
-          WHERE id = ?
-        "#,
+              SELECT 
+                id, channel_type, saved, direct, group, text, voice_max_users, created_at, updated_at 
+              FROM channels 
+              WHERE id = ?
+           "#,
           )
           .await
           .map_err(|e| format!("Failed to prepare get_channel_by_id statment: {}", e))?;
@@ -335,7 +354,7 @@ impl DatabaseInfoNoSql {
         Ok(DatabaseNoSql::Scylladb(ScyllaDb {
           db: session,
           prepared: Prepared {
-            servers: PreparedServers { get_server_by_id },
+            servers: PreparedServers { get_server_by_id, insert_server },
             channels: PreparedChannels {
               insert_channel,
               insert_channel_by_user,
@@ -348,6 +367,7 @@ impl DatabaseInfoNoSql {
               get_server_ids_by_user_id,
               get_server_member_by_id,
               get_server_members_by_ids,
+              get_server_members_count,
             },
             messages: PreparedMessages {
               get_messages_by_channel_id,

@@ -18,6 +18,7 @@ pub enum EventName {
   UsersResetPassword,
   GroupsCreate,
   SearchUsernames,
+  ServersCreate,
 }
 
 #[derive(Serialize, Deserialize, Debug, Display, Clone, PartialEq, Eq)]

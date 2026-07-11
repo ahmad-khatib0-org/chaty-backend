@@ -89,6 +89,8 @@ impl PermissionQuery for DatabasePermissionQuery<'_> {
   }
 
   /// Do we have a mutual connection with the currently selected user?
+  /// TODO: edit this to check if perspective or user are in server_members, or they
+  /// are in channels_by_recipient as we only do now
   async fn have_mutual_connection(&mut self) -> bool {
     if let Some(value) = self.cached_mutual_connection {
       return value;

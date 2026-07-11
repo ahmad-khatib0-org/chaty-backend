@@ -17,19 +17,10 @@ use crate::{ChannelsRepository, ReferenceNoSqlDb};
 impl ChannelsRepository for ReferenceNoSqlDb {
   async fn channels_groups_create(
     &self,
-    _ctx: Arc<Context>,
+    ctx: Arc<Context>,
     channel: &Channel,
   ) -> Result<(), DBError> {
-    let mut channels = self.channels.lock().await;
-    let path = "database.channels.channels_create".to_string();
-
-    if channels.contains_key(&channel.id) {
-      let msg = "channel already exists".to_string();
-      Err(DBError { err_type: ErrorType::ResourceExists, msg, path, ..Default::default() })
-    } else {
-      channels.insert(channel.id.to_string(), channel.clone());
-      Ok(())
-    }
+    self.channels_insert(channel, ctx.session.user_id()).await
   }
 
   async fn channels_groups_list(
@@ -133,5 +124,18 @@ impl ChannelsRepository for ReferenceNoSqlDb {
       .collect();
 
     Ok(channel_ids)
+  }
+
+  async fn channels_insert(&self, channel: &Channel, _user_id: &str) -> Result<(), DBError> {
+    let mut channels = self.channels.lock().await;
+    let path = "database.channels.channels_insert".to_string();
+
+    if channels.contains_key(&channel.id) {
+      let msg = "channel already exists".to_string();
+      Err(DBError { err_type: ErrorType::ResourceExists, msg, path, ..Default::default() })
+    } else {
+      channels.insert(channel.id.to_string(), channel.clone());
+      Ok(())
+    }
   }
 }
