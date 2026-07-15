@@ -5,30 +5,16 @@ from psycopg2.extensions import connection
 from ulid import ULID
 
 from src.models.settings import NUMBER_OF_GROUPS
+from src.nosql.statements import Prepared
 from src.shared_utils.app import get_time_miliseconds
 from src.sql.users import get_users
 
 
-def seed_messages_groups(sess: Session, conn: connection):
+def seed_messages_groups(sess: Session, conn: connection, stmt: Prepared):
   """Seed multiple group channels with fake data"""
 
   users = get_users(conn, 10)
   user_ids = [user.id for user in users]
-
-  # Prepare statements for better UDT handling
-  insert_channel_stmt = sess.prepare("""
-    INSERT INTO channels (
-        id, channel_type, "group", created_at, updated_at
-    ) 
-    VALUES (?, ?, {user_id: ?, name: ?, description: ?, recipients: ?, icon: ?, last_message_id: ?, permissions: ?, nsfw: ?}, ?, ?)
-  """)
-
-  insert_channel_by_user_stmt = sess.prepare("""
-    INSERT INTO channels_by_user (
-        user_id, channel_id, channel_type, "group", created_at, updated_at
-    ) 
-    VALUES (?, ?, ?, {user_id: ?, name: ?, description: ?, recipients: ?, icon: ?, last_message_id: ?, permissions: ?, nsfw: ?}, ?, ?)
-  """)
 
   for _ in range(NUMBER_OF_GROUPS):
     channel_id = str(ULID())
@@ -58,7 +44,7 @@ def seed_messages_groups(sess: Session, conn: connection):
         created_at,
         updated_at)
 
-    sess.execute(insert_channel_stmt, params_channel)
+    sess.execute(stmt.channels.insert_channel, params_channel)
 
     for recipient_id in recipients:
       params_by_user = (
@@ -67,6 +53,6 @@ def seed_messages_groups(sess: Session, conn: connection):
           random.choice([
               None, "General discussion", "Hang out", "Project collaboration", "Random chat"
           ]), recipients, None, None, None, random.random() < 0.1, created_at, updated_at)
-      sess.execute(insert_channel_by_user_stmt, params_by_user)
+      sess.execute(stmt.channels.insert_channel_by_user, params_by_user)
 
   print(f"Seeded {NUMBER_OF_GROUPS} group channels")

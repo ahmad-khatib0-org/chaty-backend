@@ -386,5 +386,9 @@
   {
     "id": "servers.create.too_many_servers",
     "tr": "You have exceeded the max count of servers you can to create"
+  },
+  {
+    "id": "servers.bans.banned",
+    "tr": "You are banned from this server."
   }
 ]

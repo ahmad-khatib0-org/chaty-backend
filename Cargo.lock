@@ -499,6 +499,8 @@ dependencies = [
  "chaty-proto",
  "chaty-result",
  "chaty-utils",
+ "chaty-ws",
+ "deadpool-redis",
  "futures",
  "http-body-util",
  "hyper",
@@ -625,9 +627,9 @@ dependencies = [
 
 [[package]]
 name = "chaty-proto"
-version = "0.2.25"
+version = "0.2.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5255362346c98b185f3d3343e0bc7f7e3a6ac2492a106bd4703daa5f387937b"
+checksum = "20b9e7894fac4692285fe6cd8ce2138ab6a3e644791fa49c158ef4bbc7cdecc6"
 dependencies = [
  "prost 0.13.5",
  "prost-types",
@@ -680,6 +682,18 @@ name = "chaty-utils"
 version = "0.1.3"
 dependencies = [
  "chrono",
+]
+
+[[package]]
+name = "chaty-ws"
+version = "0.1.3"
+dependencies = [
+ "chaty-proto",
+ "chaty-result",
+ "deadpool-redis",
+ "serde",
+ "serde_json",
+ "tracing",
 ]
 
 [[package]]

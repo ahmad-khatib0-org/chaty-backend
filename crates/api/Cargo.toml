@@ -7,6 +7,7 @@ authors = ["Ahmad Khatib <ahmadkhatib923@gmail.com>"]
 description = "Chaty Backend: Api implementation (grpc)"
 
 [dependencies]
+chaty-ws = { version = "0.1.3", path = "../ws" }
 chaty-database = { path = "../core/database" }
 chaty-config = { version = "0.1.3", path = "../core/config" }
 chaty-cache = { version = "0.1.3", path = "../core/cache" }
@@ -16,6 +17,8 @@ chaty-result = { version = "0.1.3", path = "../core/result", features = [
   "audit",
 ] }
 chaty-proto = ">=0.0.1, <1.0"
+
+deadpool-redis = { version = "0.22.0", features = ["serde", "rt_tokio_1"] }
 rdkafka = { version = "0.38.0", features = ["tokio"] }
 tokio = { version = "1.48.0", features = ["full"] }
 tonic = { version = "0.13.1" }

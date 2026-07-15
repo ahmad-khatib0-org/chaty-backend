@@ -1,8 +1,11 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 
 use async_trait::async_trait;
 use chaty_proto::ServerMember;
-use chaty_result::errors::{DBError, ErrorType};
+use chaty_result::{
+  context::Context,
+  errors::{DBError, ErrorType},
+};
 use chaty_utils::time::time_get_millis;
 
 use crate::{ReferenceNoSqlDb, ServerMembersRepository};
@@ -71,6 +74,21 @@ impl ServerMembersRepository for ReferenceNoSqlDb {
       .collect();
 
     Ok(found_members)
+  }
+
+  async fn server_members_insert(
+    &self,
+    _ctx: Arc<Context>,
+    member: &ServerMember,
+  ) -> Result<(), DBError> {
+    let mut members = self.server_members.lock().await;
+
+    let key = format!("{}:{}", member.server_id, member.user_id);
+    if members.get(&key).is_none() {
+      members.insert(key, member.clone());
+    }
+
+    Ok(())
   }
 
   async fn server_members_count_for_user(&self, user_id: &str) -> Result<i64, DBError> {

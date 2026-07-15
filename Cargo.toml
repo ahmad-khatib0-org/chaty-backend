@@ -11,4 +11,5 @@ members = [
   "crates/core/result",
   "crates/core/utils",
   "crates/search-worker",
+  "crates/ws",
 ]

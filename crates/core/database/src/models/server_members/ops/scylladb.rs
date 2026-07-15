@@ -1,8 +1,14 @@
-use std::io::{Error, ErrorKind};
+use std::{
+  io::{Error, ErrorKind},
+  sync::Arc,
+};
 
 use async_trait::async_trait;
 use chaty_proto::{File, ServerMember};
-use chaty_result::errors::{BoxedErr, DBError, ErrorType};
+use chaty_result::{
+  context::Context,
+  errors::{BoxedErr, DBError, ErrorType},
+};
 use chaty_utils::time::time_get_millis;
 
 use crate::{ScyllaDb, ServerMembersRepository};
@@ -132,6 +138,27 @@ impl ServerMembersRepository for ScyllaDb {
       .collect();
 
     Ok(members)
+  }
+
+  async fn server_members_insert(
+    &self,
+    _ctx: Arc<Context>,
+    member: &ServerMember,
+  ) -> Result<(), DBError> {
+    let path = "database.server_members.server_members_insert".to_string();
+
+    let de = |err: BoxedErr, msg: &str| {
+      let err_type = ErrorType::DBInsertError;
+      return DBError { path: path.clone(), err_type, msg: msg.to_string(), err };
+    };
+
+    self
+      .db
+      .execute_unpaged(&self.prepared.server_members.insert_server_member, member)
+      .await
+      .map_err(|e| de(Box::new(e), "failed to insert server member"))?;
+
+    Ok(())
   }
 
   /// Get the count of servers a user is a member of

@@ -1,6 +1,7 @@
 mod channels;
 mod helpers;
 mod messages;
+mod server_bans;
 mod server_members;
 mod servers;
 mod users;
@@ -10,6 +11,7 @@ use std::ops::Deref;
 pub use channels::*;
 pub use helpers::*;
 pub use messages::*;
+pub use server_bans::*;
 pub use server_members::*;
 pub use servers::*;
 pub use users::*;
@@ -30,6 +32,7 @@ pub trait AbstractDatabaseNoSql:
   + ServerMembersRepository
   + ServersRepository
   + MessagesRepository
+  + ServerBansRepository
   + HelpersRepository
 {
 }

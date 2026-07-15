@@ -18,13 +18,12 @@ use crate::{ChannelHelpers, ChannelsRepository, ScyllaDb};
 impl ChannelHelpers for ScyllaDb {
   async fn channels_insert_channel_and_channel_by_user(
     &self,
+    path: &str,
     channel: &Channel,
     user_id: &str,
   ) -> Result<(), DBError> {
-    let path = "database.channels.insert_channel_and_channel_by_user".to_string();
-
     let de = |err: BoxedErr, msg: &str| {
-      let path = path.clone();
+      let path = path.to_string();
       return DBError { path, err_type: ErrorType::DBInsertError, msg: msg.into(), err };
     };
 
@@ -69,36 +68,6 @@ impl ChannelHelpers for ScyllaDb {
 
     Ok(())
   }
-
-  async fn channels_insert_channel_by_user(
-    &self,
-    path: &str,
-    recipients: Vec<String>,
-    channel_id: &str,
-    channel_type: &str,
-    created_at: i64,
-  ) -> Result<(), DBError> {
-    let de = |err: BoxedErr, msg: &str| {
-      let path = path.to_string();
-      return DBError { path, err_type: ErrorType::DBInsertError, msg: msg.into(), err };
-    };
-
-    let mut batch = Batch::default();
-    batch.append_statement(self.prepared.channels.insert_channel_by_recipient.clone());
-
-    let recipient_params: Vec<_> = recipients
-      .iter()
-      .map(|recipient_id| (recipient_id, channel_id, channel_type, created_at))
-      .collect();
-
-    self
-      .db
-      .batch(&batch, recipient_params)
-      .await
-      .map_err(|err| de(Box::new(err), "failed insert a channel_by_user"))?;
-
-    Ok(())
-  }
 }
 
 #[async_trait()]
@@ -117,16 +86,7 @@ impl ChannelsRepository for ScyllaDb {
 
     let group = channel.group.as_ref().unwrap();
 
-    self.channels_insert_channel_and_channel_by_user(channel, &group.user_id).await?;
-    self
-      .channels_insert_channel_by_user(
-        &path,
-        group.recipients.clone(),
-        &channel.id,
-        &channel.channel_type,
-        channel.created_at,
-      )
-      .await?;
+    self.channels_insert_channel_and_channel_by_user(&path, channel, &group.user_id).await?;
 
     Ok(())
   }
@@ -222,7 +182,7 @@ impl ChannelsRepository for ScyllaDb {
     // Build query with IN clause for multiple types
     let placeholders = channel_types.iter().map(|_| "?").collect::<Vec<_>>().join(",");
     let query = format!(
-      "SELECT channel_id FROM channels_by_recipient WHERE recipient_user_id = ? AND channel_type IN ({})",
+      "SELECT channel_id FROM channels_by_recipient WHERE user_id = ? AND channel_type IN ({})",
       placeholders
     );
 
@@ -244,21 +204,7 @@ impl ChannelsRepository for ScyllaDb {
   async fn channels_insert(&self, channel: &Channel, user_id: &str) -> Result<(), DBError> {
     let path = "database.channels.channels_insert";
 
-    if channel.group.is_some() || channel.direct.is_some() {
-      if channel.group.is_some() {
-        let group = channel.group.as_ref().unwrap();
-        let p = (group.recipients.clone(), &channel.id, &channel.channel_type);
-        self.channels_insert_channel_by_user(&path, p.0, &p.1, &p.2, channel.created_at).await?;
-      }
-
-      if channel.direct.is_some() {
-        let direct = channel.direct.as_ref().unwrap();
-        let p = (direct.recipients.clone(), &channel.id, &channel.channel_type);
-        self.channels_insert_channel_by_user(&path, p.0, &p.1, &p.2, channel.created_at).await?;
-      }
-    }
-
-    self.channels_insert_channel_and_channel_by_user(channel, user_id).await?;
+    self.channels_insert_channel_and_channel_by_user(path, channel, user_id).await?;
 
     Ok(())
   }

@@ -13,17 +13,9 @@ use chaty_result::{context::Context, errors::DBError};
 pub trait ChannelHelpers: Sync + Send {
   async fn channels_insert_channel_and_channel_by_user(
     &self,
+    path: &str,
     channel: &Channel,
     user_id: &str,
-  ) -> Result<(), DBError>;
-
-  async fn channels_insert_channel_by_user(
-    &self,
-    path: &str,
-    recipients: Vec<String>,
-    channel_id: &str,
-    channel_type: &str,
-    created_at: i64,
   ) -> Result<(), DBError>;
 }
 

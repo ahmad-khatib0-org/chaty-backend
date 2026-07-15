@@ -3,9 +3,11 @@ mod reference_no_sql;
 #[cfg(feature = "scylladb")]
 mod scylladb;
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use chaty_proto::ServerMember;
-use chaty_result::errors::DBError;
+use chaty_result::{context::Context, errors::DBError};
 
 #[async_trait]
 pub trait ServerMembersRepository: Sync + Send {
@@ -32,4 +34,11 @@ pub trait ServerMembersRepository: Sync + Send {
   ) -> Result<Vec<ServerMember>, DBError>;
 
   async fn server_members_count_for_user(&self, user_id: &str) -> Result<i64, DBError>;
+
+  /// Insert a new server member into database
+  async fn server_members_insert(
+    &self,
+    ctx: Arc<Context>,
+    member: &ServerMember,
+  ) -> Result<(), DBError>;
 }

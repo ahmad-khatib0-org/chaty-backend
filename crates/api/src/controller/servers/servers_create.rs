@@ -2,13 +2,14 @@ use std::{sync::Arc, time::Instant};
 
 use chaty_proto::{
   servers_create_response::Response::{Data, Error},
-  ServersCreateRequest, ServersCreateResponse, ServersCreateResponseData,
+  ServerMember, ServersCreateRequest, ServersCreateResponse, ServersCreateResponseData,
 };
 use chaty_result::{
   audit::{AuditRecord, EventName, EventParameterKey, EventStatus},
   context::Context,
   errors::{not_found_error, AppError, AppErrorErrors, BoxedErr, ErrorType, ERROR_ID_INTERNAL},
 };
+use chaty_ws::v1::EventV1;
 use serde_json::json;
 use tokio::{spawn, sync::Mutex};
 use tonic::{Code, Request, Response, Status};
@@ -96,10 +97,34 @@ pub async fn servers_create(
   }
 
   server.channels = channels.iter().map(|chan| chan.id.to_string()).collect();
-  let db_result = ctr.nosql_db.servers_insert(ctx.clone(), &server).await;
+  let mut db_result = ctr.nosql_db.servers_insert(ctx.clone(), &server).await;
   if db_result.is_err() {
     return Ok(return_err(ie(Box::new(db_result.unwrap_err()))).await);
   }
+
+  let member =
+    ServerMember { server_id: server.id.clone(), user_id: user.id, ..Default::default() };
+  db_result = ctr.nosql_db.server_members_insert(ctx.clone(), &member).await;
+  if db_result.is_err() {
+    return Ok(return_err(ie(Box::new(db_result.unwrap_err()))).await);
+  }
+
+  let mut conn = match ctr.cache.get_conn(path).await {
+    Ok(conn) => conn,
+    Err(err) => return Ok(return_err(ie(Box::new(err))).await),
+  };
+
+  let server_id = server.id.clone();
+  EventV1::ServerMemberJoin { id: server.id.clone(), member }.p(&mut conn, server_id.clone()).await;
+  EventV1::ServerCreate {
+    id: server_id.clone(),
+    server: server,
+    channels,
+    emojis: vec![],
+    voice_states: vec![],
+  }
+  .private(&mut conn, server_id)
+  .await;
 
   audit.set_event_parameter(EventParameterKey::Data, get_audit().await);
   audit.success();

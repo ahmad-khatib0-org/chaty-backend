@@ -1,0 +1,19 @@
+[package]
+name = "chaty-ws"
+version = "0.1.3"
+edition = "2024"
+license = "MIT"
+authors = ["Ahmad Khatib <ahmadkhatib923@gmail.com>"]
+description = "Chaty Backend: Ws implementation"
+
+[dependencies]
+chaty-result = { version = "0.1.3", path = "../core/result", features = [
+  "audit",
+] }
+chaty-proto = ">=0.0.1, <1.0"
+
+deadpool-redis = { version = "0.22.0", features = ["serde", "rt_tokio_1"] }
+
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+tracing = "0.1.41"

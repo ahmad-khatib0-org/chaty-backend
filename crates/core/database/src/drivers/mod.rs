@@ -165,17 +165,6 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to prepare get_server_ids_by_user_id  statment: {}", e))?;
 
-        let insert_channel_by_recipient = session
-          .prepare(
-            r#"
-            INSERT INTO channels_by_recipient(
-                recipient_user_id, channel_id, channel_type, created_at
-            ) VALUES (?, ?, ?, ?)
-           "#,
-          )
-          .await
-          .map_err(|e| format!("Failed to prepare get_server_ids_by_user_id  statment: {}", e))?;
-
         let get_server_member_by_id = session
           .prepare(
             r#"
@@ -206,6 +195,19 @@ impl DatabaseInfoNoSql {
           .prepare(r#" SELECT COUNT(*) FROM server_members_by_user WHERE user_id = ? "#)
           .await
           .map_err(|e| format!("Failed to prepare get_server_members_count: {}", e))?;
+
+        let insert_server_member = session
+          .prepare(
+            r#"
+              INSERT INTO server_members (
+                server_id, user_id, username, avatar, nickname,
+                joined_at, roles, timeout, can_publish, can_receive
+              )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare insert_server_member: {}", e))?;
 
         let get_server_by_id = session
           .prepare(
@@ -351,6 +353,27 @@ impl DatabaseInfoNoSql {
           .await
           .map_err(|e| format!("Failed to prepare get_messages_by_channel_id_range: {}", e))?;
 
+        let insert_server_ban = session
+          .prepare(
+            r#" 
+              INSERT INTO server_bans (server_id, user_id, reason, banned_by, banned_at) 
+              VALUES (?, ?, ?, ?, ?)
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare insert_server_ban statment: {}", e))?;
+
+        let get_server_ban = session
+          .prepare(
+            r#"
+              SELECT server_id, user_id, reason, banned_by, banned_at
+              FROM server_bans
+              WHERE server_id = ? AND user_id = ?
+            "#,
+          )
+          .await
+          .map_err(|e| format!("Failed to prepare get_server_ban statment: {}", e))?;
+
         Ok(DatabaseNoSql::Scylladb(ScyllaDb {
           db: session,
           prepared: Prepared {
@@ -358,7 +381,6 @@ impl DatabaseInfoNoSql {
             channels: PreparedChannels {
               insert_channel,
               insert_channel_by_user,
-              insert_channel_by_recipient,
               groups_list_first_page,
               get_channel_by_id,
               groups_list_next_page,
@@ -368,6 +390,7 @@ impl DatabaseInfoNoSql {
               get_server_member_by_id,
               get_server_members_by_ids,
               get_server_members_count,
+              insert_server_member,
             },
             messages: PreparedMessages {
               get_messages_by_channel_id,
@@ -377,6 +400,7 @@ impl DatabaseInfoNoSql {
               get_messages_by_channel_id_lte,
               get_messages_by_channel_id_range,
             },
+            server_bans: PreparedServerBans { insert_server_ban, get_server_ban },
           },
         }))
       }

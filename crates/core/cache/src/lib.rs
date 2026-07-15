@@ -3,6 +3,7 @@ mod helpers;
 mod init;
 pub mod presence;
 pub mod users;
+pub mod voice;
 
 use std::{
   io::{Error, ErrorKind},
